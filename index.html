@@ -1,0 +1,1420 @@
+<title>Memeroll</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Permanent+Marker&family=Rubik:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: loud flat-colour poster style. Sticky header with tabs, masonry grid of memes grouped by day, two-column meme maker. */
+:root {
+  --bg: #eceeff;
+  --surface: #ffffff;
+  --ink: #14121f;
+  --muted: #5d5a73;
+  --accent: #ff3d81;
+  --accent-ink: #ffffff;
+  --blue: #3a4bff;
+  --sun: #ffd23f;
+  --shadow: #14121f;
+  --display: "Anton", Impact, "Arial Narrow Bold", sans-serif;
+  --body: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14121f; --surface: #211e33; --ink: #f3f0ff; --muted: #a9a5c4;
+    --accent: #ff5c97; --accent-ink: #14121f; --blue: #8c97ff; --sun: #ffd23f; --shadow: #000000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14121f; --surface: #211e33; --ink: #f3f0ff; --muted: #a9a5c4;
+  --accent: #ff5c97; --accent-ink: #14121f; --blue: #8c97ff; --sun: #ffd23f; --shadow: #000000;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+
+/* header */
+.hdr { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))) calc(-1 * max(16px, env(safe-area-inset-right, 0px))); padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); border-bottom: 3px solid var(--ink); }
+.hdr-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; }
+.logo { white-space: nowrap; font-family: var(--display); font-size: 34px; line-height: 1; letter-spacing: 0.01em; text-decoration: none; color: var(--ink); text-transform: uppercase; }
+.logo span { background: var(--accent); color: var(--accent-ink); padding: 0 6px; margin-left: 2px; display: inline-block; transform: rotate(-3deg); }
+.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 8px 0 0; }
+.tabs button { border: 0; background: none; padding: 8px 14px; font-weight: 600; border-radius: 10px 10px 0 0; white-space: nowrap; color: var(--muted); border-bottom: 5px solid transparent; }
+.tabs button[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs button:hover { color: var(--ink); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 18px; border: 2.5px solid var(--ink); border-radius: 10px; background: var(--surface); font-weight: 600; box-shadow: 3px 3px 0 var(--shadow); text-decoration: none; color: var(--ink); transition: transform .08s, box-shadow .08s; }
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow); }
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow); }
+.btn.pri { background: var(--accent); color: var(--accent-ink); }
+.btn.sm { padding: 5px 12px; font-size: 14px; box-shadow: 2px 2px 0 var(--shadow); }
+.btn:disabled { opacity: .5; cursor: default; transform: none; }
+
+main { padding-block: 22px 60px; min-height: 70vh; }
+.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.eyebrow { display: inline-block; margin: 0 0 6px; padding: 2px 10px; background: var(--sun); color: #14121f; font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; border: 2px solid var(--ink); transform: rotate(-2deg); }
+h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(34px, 7vw, 64px); line-height: 1; text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
+.sub { margin: 6px 0 0; color: var(--muted); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 2.5px solid var(--ink); background: var(--surface); border-radius: 999px; padding: 5px 14px; font-weight: 500; }
+.chip[aria-pressed="true"], .chip.on { background: var(--ink); color: var(--bg); }
+
+/* cards */
+.grid { columns: 3 260px; column-gap: 18px; }
+.card { break-inside: avoid; margin: 0 0 18px; background: var(--surface); border: 2.5px solid var(--ink); border-radius: 14px; box-shadow: 5px 5px 0 var(--shadow); overflow: hidden; display: block; }
+.card .media { display: block; width: 100%; padding: 0; border: 0; background: var(--ink); }
+.card img, .card video { display: block; width: 100%; height: auto; max-height: 70vh; object-fit: contain; background: var(--ink); }
+.card .cbody { padding: 10px 12px 12px; }
+.cap { margin: 0 0 8px; font-weight: 500; overflow-wrap: anywhere; }
+.crow { display: flex; align-items: center; gap: 8px; }
+.crow .time { color: var(--muted); font-size: 13px; margin-right: auto; display: inline-flex; align-items: center; gap: 6px; }
+.badge { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border: 2px solid var(--ink); border-radius: 6px; background: var(--sun); color: #14121f; }
+.like.on { background: var(--accent); color: var(--accent-ink); }
+.motd { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: 22px; align-items: center; margin-bottom: 26px; padding: 18px; border: 3px solid var(--ink); border-radius: 18px; background: var(--blue); box-shadow: 7px 7px 0 var(--shadow); color: #fff; }
+.motd h2 { margin: 0 0 6px; font-family: var(--display); font-weight: 400; font-size: clamp(28px, 5vw, 44px); line-height: 1; text-transform: uppercase; }
+.motd p { margin: 0 0 14px; font-size: 18px; overflow-wrap: anywhere; }
+.motd .card { margin: 0; }
+.motd .btn { color: var(--ink); }
+.motd .btn.like.on { color: var(--accent-ink); }
+.day { margin: 0 0 26px; }
+.day h2 { display: flex; align-items: baseline; gap: 12px; margin: 0 0 14px; font-family: var(--display); font-weight: 400; font-size: 28px; text-transform: uppercase; border-bottom: 3px solid var(--ink); padding-bottom: 4px; }
+.day h2 small { font-family: var(--body); font-size: 14px; color: var(--muted); text-transform: none; }
+.empty { border: 3px dashed var(--ink); border-radius: 16px; padding: 40px 20px; text-align: center; color: var(--muted); }
+.empty b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; text-transform: uppercase; color: var(--ink); }
+
+/* upload */
+.drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 44px 20px; border: 3px dashed var(--ink); border-radius: 18px; background: var(--surface); cursor: pointer; }
+.drop.over { background: var(--sun); color: #14121f; }
+.drop b { font-family: var(--display); font-weight: 400; font-size: 30px; text-transform: uppercase; }
+.pending { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; margin-top: 20px; }
+.pend { border: 2.5px solid var(--ink); border-radius: 14px; background: var(--surface); overflow: hidden; box-shadow: 4px 4px 0 var(--shadow); min-width: 0; }
+.pend img, .pend video { display: block; width: 100%; height: 170px; object-fit: contain; background: var(--ink); }
+.pend .in { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.err { color: var(--accent); font-weight: 600; margin-top: 12px; }
+.bar { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+.field { width: 100%; border: 2.5px solid var(--ink); border-radius: 10px; background: var(--bg); padding: 8px 12px; }
+
+/* maker */
+.mk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 24px; align-items: start; }
+.stage { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 110px); }
+.cwrap { display: inline-block; max-width: 100%; border: 3px solid var(--ink); border-radius: 14px; box-shadow: 6px 6px 0 var(--shadow); overflow: hidden; background: var(--ink); line-height: 0; }
+#mc { width: auto; max-width: 100%; height: auto; max-height: 66vh; touch-action: none; display: block; }
+.hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+.panel { border: 2.5px solid var(--ink); border-radius: 14px; background: var(--surface); padding: 14px; margin-bottom: 16px; box-shadow: 4px 4px 0 var(--shadow); }
+.panel h2 { margin: 0 0 10px; font-family: var(--display); font-weight: 400; font-size: 22px; text-transform: uppercase; letter-spacing: .02em; }
+.fld { display: flex; flex-direction: column; gap: 4px; font-weight: 500; font-size: 14px; margin-bottom: 10px; min-width: 0; }
+.fld input[type="text"], .fld textarea, .fld input:not([type]) { border: 2.5px solid var(--ink); border-radius: 10px; background: var(--bg); padding: 8px 12px; width: 100%; }
+.fld input[type="color"] { width: 100%; height: 38px; border: 2.5px solid var(--ink); border-radius: 10px; background: var(--bg); padding: 2px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.sw { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.sw button { width: 38px; height: 38px; border: 2.5px solid var(--ink); border-radius: 10px; padding: 0; }
+.sw button[aria-pressed="true"] { outline: 3px solid var(--blue); outline-offset: 2px; }
+.chk { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 500; }
+
+/* viewer */
+.ov { position: fixed; inset: 0; z-index: 40; background: rgba(10, 8, 20, .78); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); overflow-y: auto; }
+.sheet { position: relative; width: min(100%, 720px); background: var(--surface); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 7px 7px 0 var(--shadow); overflow: hidden; }
+.vmedia { background: var(--ink); line-height: 0; }
+.vmedia img, .vmedia video { display: block; width: 100%; max-height: 62vh; object-fit: contain; }
+.sheet .in { padding: 14px; }
+.x { position: absolute; top: 8px; right: 8px; width: 38px; height: 38px; border: 2.5px solid var(--ink); border-radius: 50%; background: var(--sun); color: #14121f; font-size: 22px; line-height: 1; z-index: 2; }
+.toast { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 600; max-width: calc(100% - 32px); }
+/* footer: calm five-column link grid on the surface colour, Anton headings, quiet links, small legal row */
+.foot { margin-top: 48px; margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))) calc(-1 * max(16px, env(safe-area-inset-right, 0px))); padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); background: var(--surface); border-top: 3px solid var(--ink); }
+.foot-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px; padding-block: 38px 30px; }
+.foot h2 { margin: 0 0 10px; font-family: var(--display); font-weight: 400; font-size: 19px; letter-spacing: .05em; text-transform: uppercase; }
+.foot ul { list-style: none; margin: 0; padding: 0; }
+.foot li a { display: inline-block; padding: 6px 0; color: var(--muted); text-decoration: none; }
+.foot li a:hover { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 3px; text-underline-offset: 5px; }
+.foot-today { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 26px; padding: 18px 0; border-top: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); }
+.foot-today strong { font-family: var(--display); font-weight: 400; font-size: 19px; letter-spacing: .05em; text-transform: uppercase; }
+.foot-today .item { color: var(--muted); }
+.foot-today .row { margin-left: auto; gap: 8px; }
+.lb { border: 0; background: none; padding: 0; color: var(--ink); font-weight: 500; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; text-align: left; }
+.foot .btn.mini { padding: 5px 12px; font-size: 13px; box-shadow: 2px 2px 0 var(--shadow); }
+.foot-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; padding: 16px 0 22px; border-top: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); font-size: 13px; color: var(--muted); }
+.foot-bar .brandline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.foot-bar .logo { font-size: 22px; }
+.foot-legal { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.foot-legal a { display: inline-block; padding: 4px 0; color: var(--muted); text-decoration: none; }
+.foot-legal a:hover { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.prose { max-width: 68ch; font-size: 16px; }
+.prose p { margin: 0 0 14px; }
+.prose h2 { margin: 26px 0 8px; font-family: var(--display); font-weight: 400; font-size: 24px; text-transform: uppercase; letter-spacing: .02em; }
+.prose ol { padding-left: 22px; margin: 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
+.prose a { color: var(--ink); text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.badge.pre { background: var(--accent); color: var(--accent-ink); }
+.gate { margin: 0 0 12px; padding: 10px 12px; border: 2.5px solid var(--ink); border-radius: 10px; background: var(--sun); color: #14121f; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.gate.ok { background: #b8f5cf; }
+.pips { display: inline-flex; gap: 4px; }
+.pips i { width: 16px; height: 16px; border: 2px solid #14121f; border-radius: 4px; background: #fff; }
+.pips i.on { background: #14121f; }
+.pend .chk { margin: 0; font-size: 14px; align-items: flex-start; }
+.upbar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 0 0 20px; padding: 16px; border: 3px solid var(--ink); border-radius: 14px; background: var(--card, var(--bg)); box-shadow: 4px 4px 0 var(--shadow); }
+.upbar p { margin: 0; color: var(--muted); flex: 1 1 220px; }
+.upbig { font-size: 20px; padding: 14px 26px; cursor: pointer; }
+.mktools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+.mktools .sep { width: 2px; align-self: stretch; background: var(--ink); opacity: .2; margin: 0 2px; }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.plan.prem .btn[aria-pressed="true"] { background: #14121f; color: #fff; }
+.btn:disabled { box-shadow: 2px 2px 0 var(--shadow); }
+details.panel > summary { cursor: pointer; font-family: var(--display); font-size: 22px; text-transform: uppercase; letter-spacing: .02em; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.panel > summary::-webkit-details-marker { display: none; }
+details.panel > summary::after { content: "+"; font-family: var(--body); font-weight: 600; }
+details.panel[open] > summary { margin-bottom: 12px; }
+details.panel[open] > summary::after { content: "\2212"; }
+.lbl { margin: 12px 0 6px; font-weight: 600; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lbl:first-child { margin-top: 0; }
+.tpls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
+.tpl { border: 2.5px solid var(--ink); border-radius: 10px; background: var(--bg); padding: 6px; display: grid; gap: 4px; justify-items: center; font-size: 12px; font-weight: 600; text-align: center; min-width: 0; }
+.tpl canvas { width: 100%; height: auto; border-radius: 6px; display: block; }
+.tpl:hover { background: var(--sun); color: #14121f; }
+.tpl[aria-pressed="true"] { outline: 3px solid var(--blue); outline-offset: 2px; }
+.fld input[type="range"] { width: 100%; }
+.emojis { display: flex; flex-wrap: wrap; gap: 8px; max-height: 196px; overflow-y: auto; padding: 2px; }
+.emojis button { width: 44px; height: 44px; font-size: 24px; border: 2.5px solid var(--ink); border-radius: 10px; background: var(--bg); padding: 0; }
+.emojis button:hover { background: var(--sun); }
+.motd .card { color: var(--ink); }
+.motd .card .cap { color: var(--ink); font-size: 15px; margin: 0 0 8px; }
+.plan.prem .hint { color: #14121f; margin: 0; }
+.plan.prem .fld input { background: #fff; color: #14121f; }
+.mcode { display: block; padding: 8px 10px; border: 2.5px solid var(--ink); border-radius: 10px; background: #fff; color: #14121f; font-size: 13px; overflow-wrap: anywhere; user-select: all; }
+@media (max-width: 960px) { .foot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .foot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding-top: 30px; } .foot-today .row { margin-left: 0; } }
+
+.btn.up { background: var(--sun); color: #14121f; }
+.plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; align-items: stretch; }
+.plan { border: 3px solid var(--ink); border-radius: 18px; background: var(--surface); padding: 20px; box-shadow: 6px 6px 0 var(--shadow); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.plan.prem { background: var(--sun); color: #14121f; }
+.plan.prem .btn:not(.pri) { background: #fff; color: #14121f; }
+.plan h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 36px; text-transform: uppercase; }
+.plan .price { margin: 0; font-weight: 600; }
+.plan ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.plan li { display: flex; gap: 10px; align-items: baseline; }
+.plan li::before { content: "✓"; font-weight: 700; }
+.plan li.soon::before { content: "…"; }
+.fld select { border: 2.5px solid var(--ink); border-radius: 10px; background: var(--bg); padding: 8px 12px; width: 100%; }
+.stk { display: flex; gap: 8px; flex-wrap: wrap; }
+.stk button { width: 46px; height: 46px; font-size: 24px; border: 2.5px solid var(--ink); border-radius: 10px; background: var(--bg); padding: 0; }
+.stk button:hover { background: var(--sun); }
+@media (max-width: 480px) {
+  .logo { font-size: 26px; }
+  .hdr-in .btn { padding: 7px 12px; white-space: nowrap; font-size: 14px; }
+  .tabs button { padding: 8px 10px; font-size: 14px; }
+  .hdr-in .row { gap: 8px; flex-wrap: nowrap; }
+}
+@media (max-width: 860px) {
+  .mk { grid-template-columns: minmax(0, 1fr); }
+  .stage { position: static; }
+  .motd { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card { animation: pop .22s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+</style>
+
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-in">
+      <a class="logo" href="#today" aria-label="Memeroll home">Meme<span>roll</span></a>
+      <div class="row" style="gap:10px"><button class="btn up" id="upg" data-go="premium">★ Upgrade</button><button class="btn pri" data-go="upload">Upload</button></div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+  </div>
+</header>
+<main class="wrap" id="view" aria-live="polite"></main>
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <nav aria-label="Explore"><h2>Explore</h2><ul>
+        <li><a href="#today" data-go="today" data-filter="all">Today's drop</a></li>
+        <li><a href="#archive" data-go="archive" data-filter="all">Archive</a></li>
+        <li><a href="#today" data-go="today" data-filter="image">Images</a></li>
+        <li><a href="#today" data-go="today" data-filter="video">Videos</a></li>
+      </ul></nav>
+      <nav aria-label="Create"><h2>Create</h2><ul>
+        <li><a href="#make" data-go="make">Make a meme</a></li>
+        <li><a href="#upload" data-go="upload">Upload a meme</a></li>
+      </ul></nav>
+      <nav aria-label="Premium"><h2>Premium</h2><ul>
+        <li><a href="#premium" data-go="premium">Compare plans</a></li>
+        <li><a href="#make" data-go="make">Extra fonts and HD export</a></li>
+        <li><a href="#upload" data-go="upload">Bigger uploads</a></li>
+      </ul></nav>
+      <nav aria-label="Community"><h2>Community</h2><ul>
+        <li><a href="#rules" data-go="rules">House rules</a></li>
+        <li><a href="#copyright" data-go="copyright">Copyright and takedowns</a></li>
+      </ul></nav>
+      <nav aria-label="Memeroll"><h2>Memeroll</h2><ul>
+        <li><a href="#about" data-go="about">About</a></li>
+        <li><a href="#privacy" data-go="privacy">Privacy</a></li>
+        <li><a href="#terms" data-go="terms">Terms</a></li>
+      </ul></nav>
+    </div>
+    <div class="foot-today">
+      <strong>Today</strong>
+      <span class="item" id="fstat"></span>
+      <span class="item" id="feod"></span>
+      <span class="item" id="fbest" hidden></span>
+      <span class="item" id="fcred"></span>
+      <div class="row"><button class="btn mini" id="themebtn" data-action="theme">Switch to dark</button><button class="btn mini" data-action="top">Back to top</button></div>
+    </div>
+    <div class="foot-bar">
+      <div class="brandline"><a class="logo" href="#today" data-go="today" data-filter="all">Meme<span>roll</span></a><span>© <span id="fyear"></span> Memeroll. Prototype: uploads stay in this browser until a backend is connected.</span></div>
+      <ul class="foot-legal">
+        <li><a href="#about" data-go="about">About</a></li>
+        <li><a href="#rules" data-go="rules">House rules</a></li>
+        <li><a href="#privacy" data-go="privacy">Privacy</a></li>
+        <li><a href="#terms" data-go="terms">Terms</a></li>
+        <li><a href="#copyright" data-go="copyright">Copyright</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+<div id="overlay"></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+(function () {
+  var DAY = 864e5, H = 36e5, MIN = 6e4;
+  var ST = { items: [], liked: {}, filter: "all", view: "today", pending: [], maker: null, loading: true, uploads: 0, used: 0, premium: false, paymsg: "", code: "" };
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var noop = function () {};
+  var DL = null, VIEW = null;  function limitMB() { return ST.premium ? 100 : 25; }
+  /* every 2 uploads earns 1 download of a premium meme */
+  function credits() { return Math.floor(ST.uploads / 2) - ST.used; }
+  function saveCredits() { try { localStorage.setItem("memeroll-uploads", String(ST.uploads)); localStorage.setItem("memeroll-used", String(ST.used)); } catch (e) {} }
+  function isOwn(it) { return it.source === "user" && !it.temp; }
+  function needsCredit(it) { return !!it.premium && !isOwn(it); }
+  /* Premium unlocks only when the payment service confirms a PayPal payment for this browser's member code.
+     Fill these in after deploying the two functions in memeroll-backend (see its README). While empty, checkout stays off. */
+  var PREMIUM = { ipn: "", status: "" };
+  var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function configured() { return !!(PREMIUM.ipn && PREMIUM.status); }
+  function newCode() {
+    try {
+      if (crypto.randomUUID) return crypto.randomUUID();
+      var b = crypto.getRandomValues(new Uint8Array(16)); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+      var h = Array.prototype.map.call(b, function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+      return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
+    } catch (e) { return ""; }
+  }
+  function memberCode() {
+    var c = ""; try { c = localStorage.getItem("memeroll-code") || ""; } catch (e) {}
+    if (!UUID_RE.test(c)) { c = UUID_RE.test(ST.code) ? ST.code : newCode(); if (c) { try { localStorage.setItem("memeroll-code", c); } catch (e) {} } }
+    ST.code = c; return c;
+  }
+  function setPayMsg(t) { ST.paymsg = t || ""; var el = $("#paymsg"); if (el) el.textContent = ST.paymsg; }
+  function verifyPremium(max, announce) {
+    if (!configured()) return Promise.resolve(false);
+    var code = memberCode(); if (!code) return Promise.resolve(false);
+    var tries = 0;
+    function once() {
+      tries++;
+      if (announce) setPayMsg("Checking with PayPal" + (max > 1 ? " (" + tries + " of " + max + ")" : "") + "...");
+      return fetch(PREMIUM.status, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code }) })
+        .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
+        .then(function (j) {
+          var was = ST.premium; ST.premium = !!j.active;
+          if (ST.premium) { setPayMsg(announce ? "Payment confirmed. Premium is unlocked." : ST.paymsg); if (!was) render(); return true; }
+          if (was) render();
+          if (tries < max) return new Promise(function (res) { setTimeout(res, 5000); }).then(once);
+          if (announce) setPayMsg("PayPal has not confirmed a payment for this browser yet. Premium stays locked. If you just paid, wait a minute and tap Check my payment.");
+          return false;
+        })
+        .catch(function () { if (announce) setPayMsg("The payment check could not be reached. Premium stays locked. Try again in a moment."); return false; });
+    }
+    return once();
+  }
+  try { if (window.claude && window.claude.use) window.claude.use("downloads").then(function (d) { DL = d; }).catch(noop); } catch (e) {}
+
+  /* ---------- helpers ---------- */
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function dayStart(ts) { var d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  function dayKey(ts) { var d = new Date(ts); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+  function dayLabel(ts) { return new Date(ts).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }); }
+  function timeLabel(ts) { return new Date(ts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
+  function likesOf(it) { return it.likes + (ST.liked[it.id] ? 1 : 0); }
+  function extOf(it) { var m = (it.mime || "").split("/")[1] || (it.kind === "video" ? "mp4" : "png"); return m.replace("jpeg", "jpg").replace("quicktime", "mov").replace("x-matroska", "mkv").split(";")[0]; }
+  function toast(msg) { var t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 2600); }
+  function byId(id) { return ST.items.filter(function (i) { return i.id === id; })[0]; }
+
+  /* ---------- storage ---------- */
+  function idb() {
+    return new Promise(function (res, rej) {
+      if (!window.indexedDB) { rej(new Error("no idb")); return; }
+      var r;
+      try { r = indexedDB.open("memeroll", 1); } catch (e) { rej(e); return; }
+      r.onupgradeneeded = function () { r.result.createObjectStore("blobs"); };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+  }
+  function putBlob(id, blob) { return idb().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction("blobs", "readwrite"); tx.objectStore("blobs").put(blob, id); tx.oncomplete = res; tx.onerror = rej; }); }); }
+  function getBlob(id) { return idb().then(function (db) { return new Promise(function (res, rej) { var rq = db.transaction("blobs").objectStore("blobs").get(id); rq.onsuccess = function () { res(rq.result); }; rq.onerror = rej; }); }); }
+  function delBlob(id) { return idb().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction("blobs", "readwrite"); tx.objectStore("blobs").delete(id); tx.oncomplete = res; tx.onerror = rej; }); }); }
+  function saveMeta() {
+    try {
+      localStorage.setItem("memeroll-items", JSON.stringify(ST.items.filter(function (i) { return i.source === "user"; }).map(function (i) { return { id: i.id, kind: i.kind, mime: i.mime, caption: i.caption, premium: !!i.premium, ts: i.ts }; })));
+    } catch (e) {}
+  }
+  function saveLiked() { try { localStorage.setItem("memeroll-liked", JSON.stringify(ST.liked)); } catch (e) {} }
+  function addItem(blob, kind, caption, premium) {
+    var id = "u" + Date.now() + Math.floor(Math.random() * 1000);
+    var it = { id: id, kind: kind, mime: blob.type || (kind === "video" ? "video/mp4" : "image/png"), caption: caption || "", premium: !!premium, ts: Date.now(), likes: 0, src: URL.createObjectURL(blob), blob: blob, source: "user" };
+    ST.items.push(it);
+    ST.uploads++; saveCredits();
+    putBlob(id, blob).catch(noop);
+    saveMeta();
+    return it;
+  }
+
+  /* ---------- meme drawing (shared by the maker and the sample memes) ---------- */
+  var BG = [["#ff3d81", "#ffb36b"], ["#3a4bff", "#7ad7ff"], ["#19b57a", "#d3f36b"], ["#8a3dff", "#ff7ad9"], ["#ff7a1a", "#ffd23f"], ["#0f1b3d", "#3d5afe"]];
+  var MEME_FONT = 'Anton, Impact, "Arial Narrow Bold", sans-serif';
+  var EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  var FONTS = { Anton: MEME_FONT, Bangers: '"Bangers", Impact, sans-serif', Bebas: '"Bebas Neue", Impact, sans-serif', Marker: '"Permanent Marker", "Comic Sans MS", cursive' };
+  function wrapText(ctx, text, maxW) {
+    var out = [];
+    String(text).split("\n").forEach(function (para) {
+      var words = para.split(/\s+/).filter(Boolean), cur = "";
+      if (!words.length) { out.push(""); return; }
+      words.forEach(function (w) { var t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; });
+      out.push(cur);
+    });
+    return out;
+  }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  function defaultAdj() { return { b: 1, c: 1, s: 1, h: 0, g: 0, sp: 0, inv: 0, tint: "#ff5a5f", ta: 0 }; }
+  var FILTERS = [["none", "Original", {}], ["bw", "Black and white", { g: 1, c: 1.1 }], ["warm", "Warm", { sp: 0.35, s: 1.3, h: -10 }], ["cool", "Cool", { s: 1.1, h: 15, b: 1.05 }], ["vivid", "Vivid", { s: 1.8, c: 1.1 }], ["fade", "Faded", { c: 0.85, b: 1.1, s: 0.8 }], ["fry", "Deep fried", { s: 3, c: 1.8, b: 1.1 }], ["neg", "Negative", { inv: 1 }]];
+  function adjIsDefault(a) { return a.b === 1 && a.c === 1 && a.s === 1 && a.h === 0 && a.g === 0 && a.sp === 0 && a.inv === 0; }
+  function filterCss(a) { return adjIsDefault(a) ? "" : "brightness(" + a.b + ") contrast(" + a.c + ") saturate(" + a.s + ") hue-rotate(" + a.h + "deg) grayscale(" + a.g + ") sepia(" + a.sp + ") invert(" + a.inv + ")"; }
+  /* the same adjustments done pixel by pixel, for browsers whose canvas has no filter (Safari) */
+  function adjustedCanvas(b, a) {
+    var key = JSON.stringify([a.b, a.c, a.s, a.h, a.g, a.sp, a.inv]);
+    if (b._ac && b._ak === key) return b._ac;
+    var img = b.img, iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height, sc = Math.min(1, 1600 / Math.max(iw, ih));
+    var c = document.createElement("canvas"); c.width = Math.max(1, Math.round(iw * sc)); c.height = Math.max(1, Math.round(ih * sc));
+    var x = c.getContext("2d"); x.drawImage(img, 0, 0, c.width, c.height);
+    var d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+    function mul(A, B) { var R = []; for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) R[i * 3 + j] = A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j]; return R; }
+    var s = a.s, cs = Math.cos(a.h * Math.PI / 180), sn = Math.sin(a.h * Math.PI / 180), g = 1 - a.g, sp = 1 - a.sp;
+    var Sa = [0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s, 0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s, 0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s];
+    var H = [0.213 + cs * 0.787 - sn * 0.213, 0.715 - cs * 0.715 - sn * 0.715, 0.072 - cs * 0.072 + sn * 0.928, 0.213 - cs * 0.213 + sn * 0.143, 0.715 + cs * 0.285 + sn * 0.140, 0.072 - cs * 0.072 - sn * 0.283, 0.213 - cs * 0.213 - sn * 0.787, 0.715 - cs * 0.715 + sn * 0.715, 0.072 + cs * 0.928 + sn * 0.072];
+    var G = [0.2126 + 0.7874 * g, 0.7152 - 0.7152 * g, 0.0722 - 0.0722 * g, 0.2126 - 0.2126 * g, 0.7152 + 0.2848 * g, 0.0722 - 0.0722 * g, 0.2126 - 0.2126 * g, 0.7152 - 0.7152 * g, 0.0722 + 0.9278 * g];
+    var Se = [0.393 + 0.607 * sp, 0.769 - 0.769 * sp, 0.189 - 0.189 * sp, 0.349 - 0.349 * sp, 0.686 + 0.314 * sp, 0.168 - 0.168 * sp, 0.272 - 0.272 * sp, 0.534 - 0.534 * sp, 0.131 + 0.869 * sp];
+    var Mx = mul(Se, mul(G, mul(H, Sa)));
+    function cl(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+    for (var i = 0; i < p.length; i += 4) {
+      var r = cl((cl(p[i] / 255 * a.b) - 0.5) * a.c + 0.5), gg = cl((cl(p[i + 1] / 255 * a.b) - 0.5) * a.c + 0.5), bb = cl((cl(p[i + 2] / 255 * a.b) - 0.5) * a.c + 0.5);
+      var r2 = cl(Mx[0] * r + Mx[1] * gg + Mx[2] * bb), g2 = cl(Mx[3] * r + Mx[4] * gg + Mx[5] * bb), b2 = cl(Mx[6] * r + Mx[7] * gg + Mx[8] * bb);
+      p[i] = (r2 * (1 - a.inv) + (1 - r2) * a.inv) * 255; p[i + 1] = (g2 * (1 - a.inv) + (1 - g2) * a.inv) * 255; p[i + 2] = (b2 * (1 - a.inv) + (1 - b2) * a.inv) * 255;
+    }
+    x.putImageData(d, 0, 0);
+    b._ac = c; b._ak = key; return c;
+  }
+
+  /* a gradient panel with dots and an optional big emoji */
+  function drawPanel(ctx, x, y, pw, ph, g, emoji) {
+    var gr = ctx.createLinearGradient(x, y, x + pw, y + ph), c = BG[g % BG.length];
+    gr.addColorStop(0, c[0]); gr.addColorStop(1, c[1]);
+    ctx.fillStyle = gr; ctx.fillRect(x, y, pw, ph);
+    ctx.fillStyle = "rgba(255,255,255,0.14)";
+    for (var r = 0, yy = y + 20; yy < y + ph; yy += 40, r++) for (var xx = x + (r % 2) * 20 + 20; xx < x + pw; xx += 40) { ctx.beginPath(); ctx.arc(xx, yy, 4, 0, 7); ctx.fill(); }
+    if (emoji) {
+      var s = Math.min(pw, ph) * 0.46;
+      ctx.font = Math.round(s) + "px " + EMOJI_FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
+      ctx.fillText(emoji, x + pw / 2, y + ph / 2 + s * 0.06);
+    }
+  }
+  /* size the user's picture is drawn at inside a panel */
+  function imgBox(M, pw, ph) {
+    var b = M.base, iw = b.img.naturalWidth || b.img.width, ih = b.img.naturalHeight || b.img.height, cover = b.fit !== "whole";
+    var sc = (cover ? Math.max(pw / iw, ph / ih) : Math.min(pw / iw, ph / ih)) * (b.zoom || 1);
+    return { dw: iw * sc, dh: ih * sc };
+  }
+  function paintBase(ctx, M, x, y, pw, ph) {
+    var b = M.base;
+    if (b.kind === "img" && b.img) {
+      var bx = imgBox(M, pw, ph), a = Object.assign(defaultAdj(), b.adj || {}), css = filterCss(a), src = b.img, native = "filter" in ctx;
+      if (css && !native) src = adjustedCanvas(b, a);
+      ctx.save(); ctx.beginPath(); ctx.rect(x, y, pw, ph); ctx.clip();
+      ctx.fillStyle = "#000"; ctx.fillRect(x, y, pw, ph);
+      ctx.save();
+      if (css && native) ctx.filter = css;
+      ctx.translate(x + pw / 2 + (b.px || 0) * pw, y + ph / 2 + (b.py || 0) * ph);
+      if (b.flip) ctx.scale(-1, 1);
+      ctx.drawImage(src, -bx.dw / 2, -bx.dh / 2, bx.dw, bx.dh);
+      ctx.restore();
+      if (a.ta > 0) { ctx.globalAlpha = a.ta; ctx.fillStyle = a.tint; ctx.fillRect(x, y, pw, ph); }
+      ctx.restore();
+    } else if (b.kind === "solid") {
+      ctx.fillStyle = b.color || "#ffffff"; ctx.fillRect(x, y, pw, ph);
+    } else if (b.split === "h") {
+      drawPanel(ctx, x, y, pw, ph / 2, b.i || 0, b.emoji); drawPanel(ctx, x, y + ph / 2, pw, ph / 2, b.i2 || 0, b.emoji2);
+      ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(x, y + ph / 2 - 2, pw, 4);
+    } else if (b.split === "v") {
+      drawPanel(ctx, x, y, pw / 2, ph, b.i || 0, b.emoji); drawPanel(ctx, x + pw / 2, y, pw / 2, ph, b.i2 || 0, b.emoji2);
+      ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(x + pw / 2 - 2, y, 4, ph);
+    } else {
+      drawPanel(ctx, x, y, pw, ph, b.i || 0, b.emoji);
+    }
+  }
+
+  function layerType(L) { return L.type || (L.sticker ? "sticker" : "text"); }
+  /* draws one item and records its size (_hw, _hh) and centre (_cx, _cy) for hit testing */
+  function drawLayer(ctx, w, h, M, L, sel) {
+    var type = layerType(L), k = M.k || 1, hw = 30, hh = 14, rad = (L.rot || 0) * Math.PI / 180;
+    ctx.save();
+    ctx.translate(L.x * w, L.y * h); ctx.rotate(rad); ctx.globalAlpha = L.op == null ? 1 : L.op;
+    if (type === "text") {
+      var size = L.size;
+      ctx.font = size + "px " + (FONTS[L.font] || MEME_FONT); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+      var txt = L.upper ? String(L.text).toUpperCase() : String(L.text);
+      if (txt.trim()) {
+        var lines = wrapText(ctx, txt, w * (L.maxw || 0.92)), lh = size * 1.12, top = -lh * lines.length / 2, maxW = 0, style = L.style || "outline";
+        lines.forEach(function (ln) { maxW = Math.max(maxW, ctx.measureText(ln).width); });
+        hw = maxW / 2 + 10; hh = lh * lines.length / 2 + 4;
+        if (style === "box") { ctx.fillStyle = L.stroke; ctx.fillRect(-hw, -hh, hw * 2, hh * 2); }
+        if (style === "shadow") { ctx.shadowColor = "rgba(0,0,0,0.75)"; ctx.shadowBlur = Math.max(4, size / 8); ctx.shadowOffsetX = 2; ctx.shadowOffsetY = Math.max(2, size / 20); }
+        ctx.fillStyle = L.fill; ctx.strokeStyle = L.stroke; ctx.lineWidth = Math.max(3, size / 7);
+        lines.forEach(function (ln, i) { var yy = top + lh * i + lh / 2; if (style === "outline") ctx.strokeText(ln, 0, yy); ctx.fillText(ln, 0, yy); });
+      }
+    } else if (type === "sticker") {
+      var ss = L.size;
+      ctx.font = ss + "px " + EMOJI_FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
+      ctx.fillText(L.text, 0, ss * 0.04);
+      hw = hh = ss * 0.6;
+    } else if (type === "shape") {
+      var s = L.size, t = L.thick || 8, rt = L.ratio || 1, kind = L.kind;
+      ctx.strokeStyle = L.fill; ctx.lineWidth = t; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      if (kind === "circle") { ctx.beginPath(); ctx.ellipse(0, 0, s / 2, s * rt / 2, 0, 0, Math.PI * 2); ctx.stroke(); hw = s / 2 + t; hh = s * rt / 2 + t; }
+      else if (kind === "rect") { ctx.strokeRect(-s / 2, -s * rt / 2, s, s * rt); hw = s / 2 + t; hh = s * rt / 2 + t; }
+      else {
+        ctx.beginPath(); ctx.moveTo(-s / 2, 0); ctx.lineTo(s / 2, 0); ctx.stroke();
+        hw = s / 2 + t; hh = t / 2 + 10;
+        if (kind === "arrow") {
+          var hl = Math.max(22, t * 3.5);
+          ctx.beginPath(); ctx.moveTo(s / 2 - hl * Math.cos(0.5), -hl * Math.sin(0.5)); ctx.lineTo(s / 2, 0); ctx.lineTo(s / 2 - hl * Math.cos(0.5), hl * Math.sin(0.5)); ctx.stroke();
+          hh = Math.max(hh, hl * Math.sin(0.5) + t);
+        }
+      }
+    }
+    ctx.restore();
+    L._hw = hw; L._hh = hh; L._cx = L.x * w; L._cy = L.y * h;
+    if (sel) {
+      ctx.save(); ctx.translate(L._cx, L._cy); ctx.rotate(rad);
+      var hs = 7 / k;
+      ctx.lineWidth = 2 / k; ctx.setLineDash([8 / k, 6 / k]);
+      ctx.strokeStyle = "#fff"; ctx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+      ctx.strokeStyle = "#000"; ctx.lineDashOffset = 7 / k; ctx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+      ctx.setLineDash([]);
+      ctx.strokeStyle = "#fff"; ctx.beginPath(); ctx.moveTo(0, -hh); ctx.lineTo(0, -hh - 26 / k); ctx.stroke();
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = "#000";
+      ctx.beginPath(); ctx.arc(0, -hh - 26 / k, hs, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillRect(hw - hs, hh - hs, hs * 2, hs * 2); ctx.strokeRect(hw - hs, hh - hs, hs * 2, hs * 2);
+      ctx.restore();
+    }
+  }
+  /* which part of an item is under the pointer: "scale", "rotate", "body" or null */
+  function handleAt(L, px, py, k) {
+    if (L._hw == null) return null;
+    var th = (L.rot || 0) * Math.PI / 180, dx = px - L._cx, dy = py - L._cy, r = 18 / k;
+    var lx = dx * Math.cos(th) + dy * Math.sin(th), ly = -dx * Math.sin(th) + dy * Math.cos(th);
+    if (Math.hypot(lx - L._hw, ly - L._hh) <= r) return "scale";
+    if (Math.hypot(lx, ly + L._hh + 26 / k) <= r) return "rotate";
+    if (Math.abs(lx) <= L._hw && Math.abs(ly) <= L._hh) return "body";
+    return null;
+  }
+
+  function drawMeme(ctx, w, h, M, showSel) {
+    ctx.clearRect(0, 0, w, h);
+    var by = M.band ? Math.round(h * (M.band.h || 0.2)) : 0;
+    paintBase(ctx, M, 0, by, w, h - by);
+    if (M.band) { ctx.fillStyle = M.band.color || "#ffffff"; ctx.fillRect(0, 0, w, by); }
+    (M.layers || []).forEach(function (L, idx) { drawLayer(ctx, w, h, M, L, showSel && idx === M.sel); });
+    (M.strokes || []).forEach(function (st) {
+      if (!st.pts.length) return;
+      ctx.save(); ctx.strokeStyle = st.c; ctx.lineWidth = st.w; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.beginPath();
+      st.pts.forEach(function (p, i) {
+        var x = p[0] * w, y = p[1] * h;
+        if (i === 0) { ctx.moveTo(x, y); if (st.pts.length === 1) ctx.lineTo(x + 0.01, y); } else ctx.lineTo(x, y);
+      });
+      ctx.stroke(); ctx.restore();
+    });
+    if (M.wm) {
+      ctx.save(); ctx.font = "26px " + MEME_FONT; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic"; ctx.lineJoin = "round";
+      ctx.lineWidth = 5; ctx.strokeStyle = "rgba(0,0,0,0.55)"; ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.strokeText("MEMEROLL", w - 14, h - 14); ctx.fillText("MEMEROLL", w - 14, h - 14);
+      ctx.restore();
+    }
+  }
+  function layer(text, y) { return { type: "text", text: text, x: 0.5, y: y, size: 64, fill: "#ffffff", stroke: "#000000", upper: true, font: "Anton", style: "outline", rot: 0, op: 1 }; }
+
+  /* ---------- sample memes (drawn here, original jokes) ---------- */
+  var SEEDS = [
+    { d: 0, hh: 9, likes: 212, premium: true, h: 800, g: 0, e: "😴", top: "Me: I'll sleep early tonight", bottom: "Me at 3am: one more video" },
+    { d: 0, hh: 14, likes: 164, h: 800, g: 1, e: "📱", top: "Battery at 1%", bottom: "Still opening the app" },
+    { d: 0, hh: 18, likes: 131, h: 1000, g: 2, e: "🧠", top: "My brain at 11pm", bottom: "Remember that awkward thing from 2014?" },
+    { d: 0, hh: 21, likes: 77, h: 600, g: 4, e: "📶", top: "Wifi: one bar", bottom: "Me: it's fine, I'll wait" },
+    { d: 1, hh: 8, likes: 301, premium: true, h: 800, g: 3, e: "🍕", top: "Diet starts Monday", bottom: "It is now Sunday night" },
+    { d: 1, hh: 16, likes: 188, h: 1000, g: 5, e: "📚", top: "Studying for the exam", bottom: "Organising my notes for 4 hours" },
+    { d: 2, hh: 11, likes: 244, premium: true, h: 800, g: 1, e: "🚌", top: "Running for the bus", bottom: "The bus does not care" },
+    { d: 2, hh: 19, likes: 96, h: 600, g: 0, e: "💡", top: "Great idea in the shower", bottom: "Gone by the time I find a towel" },
+    { d: 3, hh: 10, likes: 173, h: 800, g: 2, e: "⏰", top: "Alarm: 6am", bottom: "Me: negotiating with a clock" },
+    { d: 4, hh: 13, likes: 142, h: 800, g: 4, e: "☕", top: "Day starts after coffee", bottom: "Coffee starts after the day started" }
+  ];
+  function makeSeed(s) {
+    var c = document.createElement("canvas"); c.width = 800; c.height = s.h;
+    var M = { base: { kind: "bg", i: s.g, emoji: s.e }, layers: [layer(s.top, 0.13), layer(s.bottom, 0.87)], sel: -1 };
+    drawMeme(c.getContext("2d"), 800, s.h, M, false);
+    return new Promise(function (res) { c.toBlob(function (b) { res(b); }, "image/png"); });
+  }
+  function seedTs(s) {
+    var now = Date.now(), base = dayStart(now);
+    return s.d === 0 ? base + (s.hh / 24) * (now - base) : base - s.d * DAY + s.hh * H;
+  }
+  function buildSeeds() {
+    var fl = document.fonts && document.fonts.load ? document.fonts.load("64px Anton", "A").catch(noop) : Promise.resolve();
+    return fl.then(function () {
+      return Promise.all(SEEDS.map(function (s, i) {
+        return makeSeed(s).then(function (blob) {
+          return { id: "s" + i, kind: "image", mime: "image/png", caption: s.top + ". " + s.bottom + ".", ts: seedTs(s), likes: s.likes, premium: !!s.premium, src: URL.createObjectURL(blob), blob: blob, source: "seed" };
+        });
+      }));
+    });
+  }
+  /* two short sample videos, drawn and recorded in the page; skipped where the browser cannot record */
+  var VSEEDS = [
+    { d: 0, hh: 12, likes: 156, g: 3, e: "🕺", top: "Me when the weekend starts", bottom: "Zero plans, full energy" },
+    { d: 1, hh: 13, likes: 98, g: 5, e: "🐢", top: "Monday morning me", bottom: "Loading, please wait", premium: true }
+  ];
+  function makeSeedVideo(v) {
+    return new Promise(function (res) {
+      try {
+        if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { res(null); return; }
+        var mt = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0];
+        if (!mt) { res(null); return; }
+        var c = document.createElement("canvas"); c.width = 480; c.height = 480;
+        var ctx = c.getContext("2d"), rec = new MediaRecorder(c.captureStream(30), { mimeType: mt, videoBitsPerSecond: 1500000 }), chunks = [];
+        rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+        rec.onstop = function () { res(chunks.length ? new Blob(chunks, { type: mt.split(";")[0] }) : null); };
+        var M = { base: { kind: "bg", i: v.g, emoji: "" }, layers: [layer(v.top, 0.13), layer(v.bottom, 0.87)], sel: -1 };
+        M.layers.forEach(function (L) { L.size = 40; });
+        var t0 = Date.now(), DUR = 2400;
+        function frame() {
+          var t = (Date.now() - t0) / DUR;
+          drawMeme(ctx, 480, 480, M, false);
+          ctx.save(); ctx.font = "150px " + EMOJI_FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
+          ctx.translate(240 + Math.sin(t * Math.PI * 2) * 40, 240 + Math.sin(t * Math.PI * 4) * 70); ctx.rotate(Math.sin(t * Math.PI * 4) * 0.25);
+          ctx.fillText(v.e, 0, 0); ctx.restore();
+        }
+        frame(); rec.start();
+        var timer = setInterval(frame, 33);
+        setTimeout(function () { clearInterval(timer); try { rec.stop(); } catch (e) { res(null); } }, DUR);
+      } catch (e) { res(null); }
+    });
+  }
+  function addVideoSeeds() {
+    return Promise.all(VSEEDS.map(makeSeedVideo)).then(function (blobs) {
+      var added = false;
+      blobs.forEach(function (b, i) {
+        if (!b) return;
+        var s = VSEEDS[i];
+        ST.items.push({ id: "v" + i, kind: "video", mime: b.type, caption: s.top + ". " + s.bottom + ".", premium: !!s.premium, ts: seedTs(s), likes: s.likes, src: URL.createObjectURL(b), blob: b, source: "seed" });
+        added = true;
+      });
+      if (added && !$("#overlay .ov") && (ST.view === "today" || ST.view === "archive")) render();
+    }).catch(noop);
+  }
+  function loadUser() {
+    var meta = []; try { meta = JSON.parse(localStorage.getItem("memeroll-items") || "[]"); } catch (e) {}
+    return Promise.all(meta.map(function (m) {
+      return getBlob(m.id).then(function (blob) {
+        if (!blob) return null;
+        return { id: m.id, kind: m.kind, mime: m.mime, caption: m.caption, premium: !!m.premium, ts: m.ts, likes: 0, src: URL.createObjectURL(blob), blob: blob, source: "user" };
+      }).catch(function () { return null; });
+    })).then(function (list) { return list.filter(Boolean); });
+  }
+
+  /* ---------- feed ---------- */
+  function filtered(list) { return list.filter(function (i) { return ST.filter === "all" || (ST.filter === "image" ? i.kind === "image" : i.kind === "video"); }); }
+  function mediaTag(it) {
+    var lock = needsCredit(it);
+    if (it.kind === "video") return '<video src="' + it.src + '#t=0.1" controls' + (lock ? ' controlsList="nodownload" data-lock="1"' : '') + ' preload="metadata" playsinline loop></video>';
+    return '<img src="' + it.src + '" alt="' + esc(it.caption || "Meme") + '"' + (lock ? ' data-lock="1" draggable="false"' : '') + ' loading="lazy">';
+  }
+  function cardHTML(it) {
+    var media = it.kind === "video"
+      ? '<div class="media">' + mediaTag(it) + '</div>'
+      : '<button class="media" data-action="open" data-id="' + it.id + '" aria-label="Open meme">' + mediaTag(it) + '</button>';
+    return '<article class="card" data-card="' + it.id + '">' + media + '<div class="cbody">' +
+      (it.caption ? '<p class="cap">' + esc(it.caption) + '</p>' : '') +
+      '<div class="crow"><span class="time">' + (it.kind === "video" ? '<span class="badge">Video</span>' : '') + (it.premium ? '<span class="badge pre">Premium</span>' : '') + timeLabel(it.ts) + '</span>' +
+      '<button class="btn sm like' + (ST.liked[it.id] ? ' on' : '') + '" data-like="' + it.id + '" data-action="like" data-id="' + it.id + '" aria-pressed="' + !!ST.liked[it.id] + '" aria-label="Like">♥ <span>' + likesOf(it) + '</span></button>' +
+      '<button class="btn sm" data-action="open" data-id="' + it.id + '" data-dl="1">Save</button></div></div></article>';
+  }
+  function chipsHTML(list) {
+    var n = { all: list.length, image: 0, video: 0 };
+    list.forEach(function (i) { n[i.kind]++; });
+    return '<div class="chips" role="group" aria-label="Filter">' + [["all", "All"], ["image", "Images"], ["video", "Videos"]].map(function (f) {
+      return '<button class="chip" data-action="filter" data-f="' + f[0] + '" aria-pressed="' + (ST.filter === f[0]) + '">' + f[1] + ' ' + n[f[0]] + '</button>';
+    }).join("") + '</div>';
+  }
+  function eodText() {
+    var left = dayStart(Date.now()) + DAY - Date.now(), h = Math.floor(left / H), m = Math.floor((left % H) / MIN);
+    return "Today's drop closes in " + h + "h " + m + "m";
+  }
+  function renderToday() {
+    var key = dayKey(Date.now());
+    var all = ST.items.filter(function (i) { return dayKey(i.ts) === key; });
+    var list = filtered(all).sort(function (a, b) { return b.ts - a.ts; });
+    var best = null;
+    list.forEach(function (i) { if (!best || likesOf(i) > likesOf(best)) best = i; });
+    var rest = list.filter(function (i) { return i !== best; });
+    var html = '<div class="hero"><div><p class="eyebrow">Today</p><h1>' + esc(dayLabel(Date.now())) + '</h1><p class="sub"><span id="eod">' + eodText() + '</span> · ' + all.length + ' memes posted</p></div>' + chipsHTML(all) + '</div>';
+    if (best) {
+      html += '<section class="motd" aria-label="Meme of the day"><div><p class="eyebrow">Meme of the day</p><h2>Most liked so far</h2>' + (best.caption ? '<p>' + esc(best.caption) + '</p>' : '') +
+        '<button class="btn like' + (ST.liked[best.id] ? ' on' : '') + '" data-like="' + best.id + '" data-action="like" data-id="' + best.id + '" aria-pressed="' + !!ST.liked[best.id] + '">♥ <span>' + likesOf(best) + '</span></button> ' +
+        '<button class="btn" data-action="open" data-id="' + best.id + '" data-dl="1">Save</button></div>' + cardHTML(best).replace('class="card"', 'class="card" style="animation:none"') + '</section>';
+    }
+    html += rest.length ? '<div class="grid">' + rest.map(cardHTML).join("") + '</div>' : (best ? '' : '<div class="empty"><b>Nothing here yet</b>Be the first to post today.</div>');
+    $("#view").innerHTML = html;
+  }
+  function renderArchive() {
+    var list = filtered(ST.items).sort(function (a, b) { return b.ts - a.ts; });
+    var groups = [], seen = {};
+    list.forEach(function (i) { var k = dayKey(i.ts); if (!seen[k]) { seen[k] = { ts: i.ts, items: [] }; groups.push(seen[k]); } seen[k].items.push(i); });
+    var html = '<div class="hero"><div><p class="eyebrow">Archive</p><h1>Every day, every drop</h1><p class="sub">Browse earlier days and save the ones you like.</p></div>' + chipsHTML(ST.items) + '</div>';
+    html += groups.length ? groups.map(function (g) {
+      return '<section class="day"><h2>' + (dayKey(g.ts) === dayKey(Date.now()) ? "Today" : esc(dayLabel(g.ts))) + '<small>' + g.items.length + (g.items.length === 1 ? ' meme' : ' memes') + '</small></h2><div class="grid">' + g.items.map(cardHTML).join("") + '</div></section>';
+    }).join("") : '<div class="empty"><b>No memes match</b>Try another filter.</div>';
+    $("#view").innerHTML = html;
+  }
+
+  /* ---------- viewer ---------- */
+  function gateHTML(it) {
+    if (!needsCredit(it)) return "";
+    var c = credits(), t = ST.uploads % 2;
+    if (c > 0) return '<div class="gate ok" id="gate"><b>Premium meme.</b> You have ' + c + (c === 1 ? " download credit" : " download credits") + '. This download uses 1.</div>';
+    return '<div class="gate" id="gate"><b>Premium meme.</b> Upload 2 memes to unlock 1 download.<span class="pips" role="img" aria-label="' + t + ' of 2 uploaded"><i class="' + (t >= 1 ? 'on' : '') + '"></i><i class="' + (t >= 2 ? 'on' : '') + '"></i></span><span>' + t + ' of 2 uploaded</span></div>';
+  }
+  function openViewer(it, focusDl) {
+    var fname = "memeroll-" + it.id + "." + extOf(it);
+    VIEW = { item: it, name: fname };
+    var own = isOwn(it), prem = needsCredit(it), locked = prem && credits() < 1;
+    var dlBtn = locked
+      ? '<button class="btn" data-action="need-uploads">Upload 2 memes to unlock</button>'
+      : '<a class="btn pri" id="dl" href="' + it.src + '" download="' + fname + '" rel="noopener">Download ' + (it.kind === "video" ? "video" : "image") + '</a>';
+    var hint = locked ? '' : prem
+      ? '<p class="hint">If the download does not start, press the Download button again.</p>'
+      : '<p class="hint">If the download does not start, ' + (it.kind === "video" ? 'open the video menu (⋮) or right-click it and choose Download.' : 'press and hold the picture, or right-click it, and choose Save image.') + '</p>';
+    $("#overlay").innerHTML = '<div class="ov" data-action="close-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Meme viewer">' +
+      '<button class="x" data-action="close" aria-label="Close">×</button><div class="vmedia">' + mediaTag(it) + '</div><div class="in">' +
+      (it.caption ? '<p class="cap">' + (it.premium ? '<span class="badge pre">Premium</span> ' : '') + esc(it.caption) + '</p>' : (it.premium ? '<p class="cap"><span class="badge pre">Premium</span></p>' : '')) +
+      gateHTML(it) +
+      '<div class="row">' + (it.temp ? '' : '<button class="btn like' + (ST.liked[it.id] ? ' on' : '') + '" data-like="' + it.id + '" data-action="like" data-id="' + it.id + '" aria-pressed="' + !!ST.liked[it.id] + '">♥ <span>' + likesOf(it) + '</span></button>') +
+      dlBtn + (own ? '<button class="btn" data-action="delete" data-id="' + it.id + '">Delete</button>' : '') + '</div>' + hint + '</div></div></div>';
+    document.body.style.overflow = "hidden";
+    var f = focusDl ? ($("#dl") || $('[data-action="need-uploads"]')) : $(".x"); if (f) f.focus();
+  }
+  function spendCredit(it) {
+    ST.used++; saveCredits(); updateFooter();
+    setTimeout(function () { if (VIEW && VIEW.item === it && $("#overlay .ov")) openViewer(it, false); }, 600);
+  }
+  function closeViewer() {
+    var v = $("#overlay video"); if (v) v.pause();
+    var tmp = $("#overlay a#dl"); if (tmp && tmp.dataset.temp) URL.revokeObjectURL(tmp.href);
+    $("#overlay").innerHTML = ""; document.body.style.overflow = "";
+  }
+
+  /* ---------- upload ---------- */
+  function renderUpload() {
+    var html = '<div class="hero"><div><p class="eyebrow">Upload</p><h1>Upload Meme and earn</h1><p class="sub">Images and videos, up to ' + limitMB() + ' MB each.' + (ST.premium ? '' : ' Premium raises this to 100 MB.') + '</p><p class="sub"><b>Every meme you upload earns 10 points.</b> Your points: ' + (ST.uploads * 10) + '.</p><p class="sub">Every 2 memes you upload also earns 1 premium download. Credits: ' + credits() + ' (' + (ST.uploads % 2) + ' of 2 toward the next).</p></div></div>' +
+      '<label class="drop" id="drop" for="ufile"><b>Drop memes here</b><span>or tap to choose images and videos</span></label>' +
+      '<input id="ufile" type="file" accept="image/*,video/*" multiple hidden>' +
+      '<div class="err" id="uerr" role="alert"></div><div class="pending" id="pending"></div><div class="bar" id="ubar"></div>';
+    $("#view").innerHTML = html; renderPending();
+  }
+  function renderPending() {
+    var p = $("#pending"); if (!p) return;
+    p.innerHTML = ST.pending.map(function (f, i) {
+      return '<div class="pend">' + (f.kind === "video" ? '<video src="' + f.url + '#t=0.1" controls preload="metadata" playsinline></video>' : '<img src="' + f.url + '" alt="Preview">') +
+        '<div class="in"><input class="field" id="pc-' + i + '" data-cap="' + i + '" type="text" maxlength="120" placeholder="Caption (optional)" value="' + esc(f.caption) + '">' +
+        '<label class="chk"><input type="checkbox" data-prem="' + i + '"' + (f.premium ? ' checked' : '') + '> Premium meme: others upload 2 memes to download it</label><button class="btn sm" data-action="rm-pending" data-i="' + i + '">Remove</button></div></div>';
+    }).join("");
+    $("#ubar").innerHTML = ST.pending.length ? '<button class="btn pri" data-action="post-upload">Post ' + ST.pending.length + (ST.pending.length === 1 ? ' meme' : ' memes') + ' to today</button>' : '';
+  }
+  function takeFiles(files) {
+    var err = [];
+    Array.prototype.forEach.call(files, function (f) {
+      var kind = f.type.indexOf("video/") === 0 ? "video" : f.type.indexOf("image/") === 0 ? "image" : null;
+      if (!kind) { err.push(f.name + " is not an image or video."); return; }
+      if (f.size > limitMB() * 1024 * 1024) { err.push(f.name + " is over " + limitMB() + " MB." + (ST.premium ? "" : " Premium allows up to 100 MB.")); return; }
+      ST.pending.push({ file: f, kind: kind, url: URL.createObjectURL(f), caption: "", premium: false });
+    });
+    var el = $("#uerr"); if (el) el.textContent = err.join(" ");
+    renderPending();
+  }
+
+  /* ---------- maker ---------- */
+  var SURPRISE = [["When the wifi drops", "And you were at 99%"], ["My plan for the weekend", "My weekend"], ["Me: I will start tomorrow", "Tomorrow: same energy"], ["Expectation", "Reality"], ["Group project, day one", "Group project, the night before"], ["Me checking my phone once", "Me an hour later"], ["Charger at 100%", "Me at 3% two minutes later"], ["Just one episode", "The sun is coming up"]];
+  var QUICK_EMOJI = ["😅", "🤔", "😎", "🙃", "🫠", "😴", "🤯", "🥲", "🙌", "💀"];
+  var EMOJI_SET = ["😂", "🤣", "😭", "😅", "😎", "🤯", "🥲", "🙃", "🫠", "🤡", "💀", "😈", "🥵", "🥶", "😱", "🤔", "🙄", "😴", "🤤", "😬", "👀", "🔥", "💯", "✨", "💥", "💔", "❤️", "👑", "🙌", "🙏", "👍", "👎", "👉", "🤌", "💪", "🫡", "🧠", "🍕", "☕", "📱", "💸", "🎉", "⚡", "🚀", "🐸", "🐢", "🦆", "🗿"];
+  var IDEAS = ["Me: I am not hungry\nAlso me: opens the fridge for the ninth time", "My brain at 3am:\nRemember that thing you said in 2014?", "Me: I will save money this month\nMy phone: new sale just dropped", "Nobody:\nAbsolutely nobody:\nMy alarm: surprise!", "Me explaining why I am late:\nThe bus: exists\nMe: it was personal", "Wifi: connected\nInternet: nope", "Me: one episode\nThe sun: good morning", "Me pretending to work when someone walks by", "My plan: wake up early\nMy bed: absolutely not", "When the group project is due tomorrow and you just met your group", "Me: I can fix this in 5 minutes\nThree hours later:", "My phone at 1%: finally calm\nMy phone at 100%: dies instantly", "Teacher: any questions?\nMe: how is it already Friday", "Me: I'll start my diet Monday\nAlso me on Sunday: last supper", "Dogs: wag tail\nMe seeing food: wag everything", "Me: sleeping early\nThe little voice: but have you considered one more video?", "Trying to look busy:\nExpert level", "Plan A: works\nPlan B: panic", "Me: I will not buy anything\nMe: opens cart", "Weekend: 2 days\nMonday: 400 days"];
+  var SIZES = [["Square", 800, 800], ["Portrait", 800, 1000], ["Wide", 800, 450], ["Tall", 800, 1200]];
+  var PEN_COLORS = ["#ff2d55", "#ffd23f", "#ffffff", "#111111", "#3a4bff", "#19b57a"];
+  var MK_FONTS = [["Anton", "Anton"], ["Bangers", "Bangers (Premium)"], ["Bebas", "Bebas Neue (Premium)"], ["Marker", "Permanent Marker (Premium)"]];
+
+  function T(text, y, o) { var l = layer(text, y); for (var k in o) l[k] = o[k]; return l; }
+  var TEMPLATES = [
+    { id: "classic", name: "Classic", make: function () { return { w: 800, h: 800, base: { kind: "bg", i: 0, emoji: "😅" }, band: null, layers: [T("When the wifi drops", 0.13, {}), T("And you were at 99%", 0.87, {})] }; } },
+    { id: "topbar", name: "Caption on top", make: function () { return { w: 800, h: 1000, base: { kind: "bg", i: 1, emoji: "🤔" }, band: { h: 0.2, color: "#ffffff" }, layers: [T("Me explaining my plan to myself at 2am", 0.1, { fill: "#111111", style: "plain", size: 48, upper: false })] }; } },
+    { id: "two", name: "Two choices", make: function () { return { w: 800, h: 1000, base: { kind: "bg", i: 4, emoji: "🙅", split: "h", i2: 2, emoji2: "😎" }, band: null, layers: [T("The boring way", 0.2, { size: 58 }), T("The better way", 0.7, { size: 58 })] }; } },
+    { id: "sides", name: "Expectation vs reality", make: function () { return { w: 800, h: 800, base: { kind: "bg", i: 5, emoji: "😌", split: "v", i2: 0, emoji2: "😵" }, band: null, layers: [T("Expectation", 0.12, { x: 0.25, size: 48, maxw: 0.46 }), T("Reality", 0.12, { x: 0.75, size: 48, maxw: 0.46 })] }; } },
+    { id: "words", name: "Words only", make: function () { return { w: 800, h: 800, base: { kind: "solid", color: "#ffffff" }, band: null, layers: [T("Nobody:\nAbsolutely nobody:\nMe at 3am: let's reorganise my whole life", 0.5, { fill: "#111111", style: "plain", size: 52, upper: false })] }; } },
+    { id: "cinema", name: "Subtitle", make: function () { return { w: 800, h: 450, base: { kind: "bg", i: 3, emoji: "🎬" }, band: null, layers: [T("When the subtitle is funnier than the movie", 0.86, { style: "box", stroke: "#000000", fill: "#ffffff", size: 34, upper: false })] }; } }
+  ];
+
+  function blankState(t) {
+    var d = t.make();
+    return { w: d.w, h: d.h, base: d.base, band: d.band, layers: d.layers, strokes: [], sel: d.layers.length ? 0 : -1, k: 1, caption: "", premium: false, wm: false, tool: "move", pen: { c: "#ff2d55", w: 8 }, hist: [], hi: -1, tpl: t.id, fmt: "png", hd: false };
+  }
+  function newMaker() { ST.maker = blankState(TEMPLATES[0]); commit(); return ST.maker; }
+
+  /* ----- history ----- */
+  function snap(M) {
+    var b = {}; for (var k in M.base) if (k !== "img") b[k] = M.base[k];
+    return { img: M.base.img || null, json: JSON.stringify({ w: M.w, h: M.h, base: b, band: M.band, layers: M.layers, strokes: M.strokes, sel: M.sel }, function (key, v) { return key.charAt(0) === "_" ? undefined : v; }) };
+  }
+  function restore(M, s) {
+    var d = JSON.parse(s.json);
+    M.w = d.w; M.h = d.h; M.base = d.base; if (s.img) M.base.img = s.img; M.band = d.band; M.layers = d.layers; M.strokes = d.strokes; M.sel = d.sel;
+  }
+  function commit() {
+    var M = ST.maker; if (!M) return;
+    var s = snap(M), last = M.hist[M.hi];
+    if (last && last.json === s.json && last.img === s.img) return;
+    M.hist = M.hist.slice(0, M.hi + 1); M.hist.push(s);
+    if (M.hist.length > 80) M.hist.shift();
+    M.hi = M.hist.length - 1;
+  }
+  function undo() { var M = ST.maker; if (!M || M.hi < 1) return; M.hi--; restore(M, M.hist[M.hi]); syncAll(); redrawMaker(); }
+  function redo() { var M = ST.maker; if (!M || M.hi >= M.hist.length - 1) return; M.hi++; restore(M, M.hist[M.hi]); syncAll(); redrawMaker(); }
+
+  /* ----- item actions ----- */
+  function dupLayer() {
+    var M = ST.maker, L = M.layers[M.sel]; if (!L) return;
+    var c = JSON.parse(JSON.stringify(L, function (k, v) { return k.charAt(0) === "_" ? undefined : v; }));
+    c.x = clamp(c.x + 0.04, 0, 1); c.y = clamp(c.y + 0.04, 0, 1);
+    M.layers.push(c); M.sel = M.layers.length - 1; commit(); syncAll(); redrawMaker();
+  }
+  function delLayer() {
+    var M = ST.maker; if (!M.layers[M.sel]) return;
+    M.layers.splice(M.sel, 1); M.sel = Math.min(M.sel, M.layers.length - 1); commit(); syncAll(); redrawMaker();
+  }
+  function moveLayer(d) {
+    var M = ST.maker, i = M.sel, j = i + d; if (!M.layers[i] || !M.layers[j]) return;
+    var t = M.layers[i]; M.layers[i] = M.layers[j]; M.layers[j] = t; M.sel = j; commit(); syncAll(); redrawMaker();
+  }
+  function clampPan(M) {
+    var b = M.base; if (b.kind !== "img" || !b.img) return;
+    var by = M.band ? Math.round(M.h * (M.band.h || 0.2)) : 0, pw = M.w, ph = M.h - by, bx = imgBox(M, pw, ph);
+    var mx = b.fit === "whole" ? 0.5 : Math.max(0, (bx.dw - pw) / 2) / pw, my = b.fit === "whole" ? 0.5 : Math.max(0, (bx.dh - ph) / 2) / ph;
+    b.px = clamp(b.px || 0, -mx, mx); b.py = clamp(b.py || 0, -my, my);
+  }
+  function applyTemplate(id, quiet) {
+    var M = ST.maker, t = TEMPLATES.filter(function (x) { return x.id === id; })[0]; if (!t) return;
+    var d = t.make(), keepImg = M.base.kind === "img" && !d.base.split && d.base.kind !== "solid";
+    M.w = d.w; M.h = d.h; M.band = d.band; M.layers = d.layers; M.strokes = []; M.sel = d.layers.length ? 0 : -1; M.tpl = id; M.tool = "move";
+    if (!keepImg) M.base = d.base; else clampPan(M);
+    if (!quiet) { commit(); syncAll(); redrawMaker(); }
+  }
+  function surprise() {
+    var M = ST.maker, rnd = function (n) { return Math.floor(Math.random() * n); };
+    applyTemplate(TEMPLATES[rnd(TEMPLATES.length)].id, true);
+    var pair = SURPRISE[rnd(SURPRISE.length)], texts = M.layers.filter(function (l) { return layerType(l) === "text"; });
+    if (texts.length === 1) texts[0].text = pair.join("\n"); else { texts[0].text = pair[0]; if (texts[1]) texts[1].text = pair[1]; }
+    if (M.base.kind === "bg") {
+      M.base.i = rnd(BG.length); M.base.emoji = QUICK_EMOJI[rnd(QUICK_EMOJI.length)];
+      if (M.base.split) { M.base.i2 = (M.base.i + 1 + rnd(BG.length - 1)) % BG.length; M.base.emoji2 = QUICK_EMOJI[rnd(QUICK_EMOJI.length)]; }
+    }
+    commit(); syncAll(); redrawMaker();
+  }
+
+  /* ----- panels ----- */
+  function focusSig() {
+    var a = document.activeElement;
+    if (!a || !a.attributes || !a.closest || !a.closest("#mkside, #mktools")) return null;
+    var s = a.tagName.toLowerCase();
+    if (a.id) s += "#" + a.id;
+    Array.prototype.forEach.call(a.attributes, function (at) { if (at.name.indexOf("data-") === 0) s += "[" + at.name + '="' + String(at.value).replace(/"/g, '\\"') + '"]'; });
+    return s;
+  }
+  function pressed(b) { return ' aria-pressed="' + (b ? "true" : "false") + '"'; }
+  function chip(label, mk, attrs, on) { return '<button class="chip" data-mk="' + mk + '"' + (attrs || "") + pressed(on) + '>' + label + '</button>'; }
+
+  function syncTools() {
+    var el = $("#mktools"), M = ST.maker; if (!el || !M) return;
+    var has = !!M.layers[M.sel];
+    function tb(label, mk, dis, extra) { return '<button class="btn sm" data-mk="' + mk + '"' + (dis ? " disabled" : "") + (extra || "") + '>' + label + '</button>'; }
+    el.innerHTML = tb("Undo", "undo", M.hi < 1) + tb("Redo", "redo", M.hi >= M.hist.length - 1) + '<span class="sep"></span>' +
+      tb("Move", "tool", false, ' data-v="move"' + pressed(M.tool !== "pen")) + tb("Pen", "tool", false, ' data-v="pen"' + pressed(M.tool === "pen")) + '<span class="sep"></span>' +
+      tb("Duplicate", "dup", !has) + tb("Forward", "fwd", !has || M.sel >= M.layers.length - 1) + tb("Back", "back", !has || M.sel <= 0) + tb("Delete", "del", !has);
+    var h = $("#mkhint");
+    if (h) h.textContent = M.tool === "pen" ? "Pen is on. Draw on the picture, then choose Move to edit items again." : "Drag items to move them. Use the round handle to rotate and the square handle to resize. Drag the picture itself to reposition it. Drop or paste a picture here to use it.";
+    var c = $("#mc"); if (c) c.style.cursor = M.tool === "pen" ? "crosshair" : "default";
+  }
+  function swatchRow(M, which) {
+    var cur = which === "a" ? M.base.i : M.base.i2, isBg = M.base.kind === "bg";
+    var h = '<div class="sw">' + BG.map(function (c, i) {
+      return '<button data-mk="swatch" data-which="' + which + '" data-i="' + i + '" aria-label="Backdrop ' + (i + 1) + '"' + pressed(isBg && (cur || 0) === i) + ' style="background:linear-gradient(135deg,' + c[0] + ',' + c[1] + ')"></button>';
+    }).join("");
+    if (which === "a" && !M.base.split) h += ["#ffffff", "#111111"].map(function (c) { return '<button data-mk="solid" data-c="' + c + '" aria-label="Plain ' + (c === "#ffffff" ? "white" : "black") + '"' + pressed(M.base.kind === "solid" && M.base.color === c) + ' style="background:' + c + '"></button>'; }).join("");
+    return h + '</div>';
+  }
+  function pictureHTML(M) {
+    var b = M.base, h = '<div class="row"><label class="btn pri sm" for="mk-file">' + (b.kind === "img" ? "Change picture" : "Upload a picture") + '</label><input id="mk-file" type="file" accept="image/*" hidden>' + (b.kind === "img" ? '<button class="btn sm" data-mk="clearimg">Remove picture</button>' : "") + '</div>' +
+      '<p class="hint">You can also drop or paste a picture onto the canvas.</p><p class="lbl">Canvas size</p><div class="chips">' +
+      SIZES.map(function (s) { return chip(s[0], "size", ' data-w="' + s[1] + '" data-h="' + s[2] + '"', M.w === s[1] && M.h === s[2]); }).join("") +
+      (b.kind === "img" ? chip("Match picture", "size-auto", "", false) : "") + '</div>';
+    if (b.kind !== "img") {
+      h += '<p class="lbl">' + (b.split ? "First backdrop" : "Backdrop") + '</p>' + swatchRow(M, "a");
+      if (b.split) h += '<p class="lbl">Second backdrop</p>' + swatchRow(M, "b");
+      if (b.kind === "bg") {
+        h += '<label class="fld">Big emoji' + (b.split ? " (first)" : "") + '<input id="mk-emoji" type="text" maxlength="4" value="' + esc(b.emoji || "") + '"></label>';
+        if (b.split) h += '<label class="fld">Big emoji (second)<input id="mk-emoji2" type="text" maxlength="4" value="' + esc(b.emoji2 || "") + '"></label>';
+        h += '<div class="stk">' + QUICK_EMOJI.map(function (e) { return '<button data-mk="emoji" data-e="' + e + '" aria-label="Use ' + e + '">' + e + '</button>'; }).join("") + '</div>';
+      }
+    } else {
+      h += '<p class="lbl">Fit</p><div class="chips">' + chip("Fill the canvas", "fit", ' data-v="fill"', b.fit !== "whole") + chip("Show whole picture", "fit", ' data-v="whole"', b.fit === "whole") + '</div>' +
+        '<label class="fld" style="margin-top:10px">Zoom<input id="mk-zoom" type="range" min="1" max="3" step="0.05" value="' + (b.zoom || 1) + '"></label>' +
+        '<div class="row"><button class="btn sm" data-mk="flip">Flip</button><button class="btn sm" data-mk="resetimg">Reset position</button></div>';
+    }
+    h += '<p class="lbl">Caption bar</p><div class="chips">' + chip(M.band ? "On" : "Off", "band", "", !!M.band) + '</div>';
+    if (M.band) h += '<div class="two" style="margin-top:10px"><label class="fld">Bar colour<input id="mk-bandc" type="color" value="' + esc(M.band.color || "#ffffff") + '"></label><label class="fld">Bar height<input id="mk-bandh" type="range" min="0.1" max="0.4" step="0.01" value="' + (M.band.h || 0.2) + '"></label></div>';
+    return h;
+  }
+  function adjRange(label, key, min, max, step, val) { return '<label class="fld">' + label + '<input type="range" data-adj="' + key + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '"></label>'; }
+  function colourHTML(M) {
+    var b = M.base;
+    if (b.kind !== "img") return '<p class="hint" style="margin-top:0">Upload a picture to change its colours. For a plain backdrop, pick its colour under Picture.</p><div class="row"><label class="btn pri sm" for="mk-file">Upload a picture</label></div>';
+    var a = Object.assign(defaultAdj(), b.adj || {});
+    return '<p class="lbl">Looks</p><div class="chips">' + FILTERS.map(function (f) { return chip(f[1], "filter", ' data-v="' + f[0] + '"', (b.fkey || "none") === f[0]); }).join("") + '</div>' +
+      '<div style="margin-top:10px">' + adjRange("Brightness", "b", 0.4, 1.8, 0.01, a.b) + adjRange("Contrast", "c", 0.4, 2, 0.01, a.c) + adjRange("Saturation", "s", 0, 3, 0.01, a.s) + adjRange("Colour shift", "h", -180, 180, 1, a.h) + '</div>' +
+      '<div class="two"><label class="fld">Colour wash<input type="color" data-adj="tint" value="' + esc(a.tint) + '"></label>' + adjRange("Wash strength", "ta", 0, 0.8, 0.01, a.ta) + '</div>' +
+      '<label class="chk"><input type="checkbox" data-adj="inv"' + (a.inv ? " checked" : "") + '> Negative</label><div class="row"><button class="btn sm" data-mk="resetcolour">Reset colours</button></div>';
+  }
+  function addHTML() {
+    return '<div class="row"><button class="btn sm" data-mk="add-text">Add text</button><button class="btn sm" data-mk="idea">Suggest a funny line</button></div>' +
+      '<p class="lbl">Emojis</p><div class="emojis">' + EMOJI_SET.map(function (e) { return '<button data-mk="sticker" data-e="' + e + '" aria-label="Add ' + e + '">' + e + '</button>'; }).join("") + '</div>' +
+      '<div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="mk-emoji-add" class="field" type="text" maxlength="12" placeholder="Paste any emoji" aria-label="Any emoji" style="flex:1;min-width:0"><button class="btn sm" data-mk="emoji-custom">Add</button></div>' +
+      '<p class="lbl">Shapes</p><div class="row">' +
+      [["arrow", "Arrow"], ["circle", "Circle"], ["rect", "Box"], ["line", "Line"]].map(function (s) { return '<button class="btn sm" data-mk="add-shape" data-kind="' + s[0] + '">' + s[1] + '</button>'; }).join("") + '</div>';
+  }
+  function addEmoji(e) {
+    var M = ST.maker; M.layers.push({ type: "sticker", text: e, x: 0.5, y: 0.5, size: 140, rot: 0, op: 1 });
+    M.sel = M.layers.length - 1; M.tool = "move"; commit(); syncAll(); redrawMaker();
+  }
+  function addCustomEmoji() {
+    var inp = $("#mk-emoji-add"), v = Array.from(((inp && inp.value) || "").trim()).slice(0, 8).join("");
+    if (!v) { toast("Type or paste an emoji first"); return; }
+    addEmoji(v); var again = $("#mk-emoji-add"); if (again) again.value = "";
+  }
+  function ideaLine() { return IDEAS[Math.floor(Math.random() * IDEAS.length)]; }
+  function loadPicture(f) {
+    if (!f || f.type.indexOf("image/") !== 0) { toast("Please choose an image file"); return; }
+    var img = new Image(), url = URL.createObjectURL(f);
+    img.onload = function () {
+      var M = ST.maker, iw = img.naturalWidth, ih = img.naturalHeight, sc = Math.min(1, 2000 / Math.max(iw, ih)), src = img;
+      if (sc < 1) { var c = document.createElement("canvas"); c.width = Math.round(iw * sc); c.height = Math.round(ih * sc); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); src = c; }
+      var sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+      M.base = { kind: "img", img: src, fit: "fill", zoom: 1, px: 0, py: 0, flip: false, fkey: "none", adj: defaultAdj() };
+      M.w = 800; M.h = clamp(Math.round(800 * sh / sw), 300, 1400);
+      commit(); syncAll(); redrawMaker(); URL.revokeObjectURL(url);
+    };
+    img.onerror = function () { toast("That file could not be read as a picture"); };
+    img.src = url;
+  }
+  function layerChipsHTML(M) {
+    if (!M.layers.length) return "";
+    return '<div class="chips" id="mklayers" style="margin-bottom:12px">' + M.layers.map(function (l, i) {
+      var ty = layerType(l), label = ty === "text" ? (String(l.text).trim().replace(/\s+/g, " ").slice(0, 14) || "Empty text") : ty === "sticker" ? l.text : (l.kind === "rect" ? "Box" : l.kind.charAt(0).toUpperCase() + l.kind.slice(1));
+      return '<button class="chip" data-mk="layer" data-i="' + i + '"' + pressed(i === M.sel) + '>' + esc(label) + '</button>';
+    }).join("") + '</div>';
+  }
+  function rangeHTML(label, prop, min, max, step, val) { return '<label class="fld">' + label + '<input type="range" data-lp="' + prop + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '"></label>'; }
+  function selectedHTML(M) {
+    var L = M.layers[M.sel], h = layerChipsHTML(M);
+    if (!L) return h + '<p class="hint">Nothing is selected. Tap an item on the picture, or add text, a shape or a sticker.</p>';
+    var ty = layerType(L);
+    if (ty === "text") {
+      var st = L.style || "outline";
+      h += '<label class="fld">Text<textarea data-lp="text" rows="3" maxlength="200">' + esc(L.text) + '</textarea></label><div class="row" style="margin:-4px 0 10px"><button class="btn sm" data-mk="idea">Suggest a funny line</button></div>' +
+        '<label class="fld">Font<select id="mk-font" data-lp="font">' + MK_FONTS.map(function (f) { return '<option value="' + f[0] + '"' + ((L.font || "Anton") === f[0] ? " selected" : "") + '>' + f[1] + '</option>'; }).join("") + '</select></label>' +
+        rangeHTML("Size", "size", 16, 260, 1, L.size) +
+        '<p class="lbl">Style</p><div class="chips">' + [["outline", "Outline"], ["shadow", "Shadow"], ["box", "Box"], ["plain", "Plain"]].map(function (s) { return chip(s[1], "style", ' data-v="' + s[0] + '"', st === s[0]); }).join("") + '</div>' +
+        '<div class="two" style="margin-top:10px"><label class="fld">Text colour<input type="color" data-lp="fill" value="' + esc(L.fill) + '"></label><label class="fld">' + (st === "box" ? "Box colour" : "Outline colour") + '<input type="color" data-lp="stroke" value="' + esc(L.stroke) + '"></label></div>' +
+        '<label class="chk"><input type="checkbox" data-lp="upper"' + (L.upper ? " checked" : "") + '> All caps</label>';
+    } else if (ty === "sticker") {
+      h += rangeHTML("Size", "size", 30, 500, 1, L.size);
+    } else {
+      h += '<label class="fld">Colour<input type="color" data-lp="fill" value="' + esc(L.fill) + '"></label>' + rangeHTML("Thickness", "thick", 2, 40, 1, L.thick || 8) + rangeHTML("Length", "size", 40, 1200, 1, L.size);
+      if (L.kind === "circle" || L.kind === "rect") h += rangeHTML("Height", "ratio", 0.2, 2, 0.05, L.ratio || 1);
+    }
+    return h + rangeHTML("Rotation", "rot", -180, 180, 1, L.rot || 0) + rangeHTML("Opacity", "op", 0.1, 1, 0.05, L.op == null ? 1 : L.op);
+  }
+  function drawHTML(M) {
+    return '<p class="hint" style="margin-top:0">Turn the pen on, then draw on the picture. Circle things, add arrows, scribble.</p><div class="row"><button class="btn sm" data-mk="tool" data-v="pen"' + pressed(M.tool === "pen") + '>Pen on</button><button class="btn sm" data-mk="tool" data-v="move"' + pressed(M.tool !== "pen") + '>Pen off</button></div>' +
+      '<p class="lbl">Colour</p><div class="sw">' + PEN_COLORS.map(function (c) { return '<button data-mk="pencolor" data-c="' + c + '" aria-label="Pen colour ' + c + '"' + pressed(M.pen.c === c) + ' style="background:' + c + '"></button>'; }).join("") + '</div>' +
+      '<label class="fld">Pen size<input id="mk-pensize" type="range" min="2" max="40" value="' + M.pen.w + '"></label>' +
+      '<div class="row"><button class="btn sm" data-mk="undo-stroke"' + (M.strokes.length ? "" : " disabled") + '>Undo last stroke</button><button class="btn sm" data-mk="clear-strokes"' + (M.strokes.length ? "" : " disabled") + '>Clear drawing</button></div>';
+  }
+  function shareHTML(M) {
+    return '<label class="fld">Caption<input id="mk-cap" type="text" maxlength="120" placeholder="Optional" value="' + esc(M.caption) + '"></label>' +
+      '<label class="chk"><input id="mk-prem" type="checkbox"' + (M.premium ? " checked" : "") + '> Premium meme: others upload 2 memes to download it</label>' +
+      '<p class="lbl">Download as</p><div class="chips">' + chip("PNG", "fmt", ' data-v="png"', M.fmt === "png") + chip("JPG", "fmt", ' data-v="jpg"', M.fmt === "jpg") + chip("Standard 800 px", "hd", ' data-v="0"', !M.hd) + chip("HD 1600 px (Premium)", "hd", ' data-v="1"', !!M.hd) + '</div>' +
+      '<div class="row" style="margin-top:12px"><button class="btn pri" data-mk="post">Post to today</button><button class="btn" data-mk="download">Download</button><button class="btn" data-mk="copy">Copy picture</button></div>';
+  }
+  function syncSelected() { var el = $("#mksel"); if (el && ST.maker) el.innerHTML = selectedHTML(ST.maker); }
+  function refreshChips() { var el = $("#mklayers"); if (el && ST.maker) el.outerHTML = layerChipsHTML(ST.maker); }
+  function syncAll() {
+    var M = ST.maker; if (!M || !$("#mkside")) return;
+    var sig = focusSig();
+    syncTools();
+    $("#mkpic").innerHTML = pictureHTML(M); $("#mkcolor").innerHTML = colourHTML(M); $("#mkadd").innerHTML = addHTML(); $("#mksel").innerHTML = selectedHTML(M);
+    $("#mkdraw").innerHTML = drawHTML(M); $("#mkshare").innerHTML = shareHTML(M);
+    Array.prototype.forEach.call(document.querySelectorAll("#tpls .tpl"), function (b) { b.setAttribute("aria-pressed", b.dataset.id === M.tpl ? "true" : "false"); });
+    var wm = $("#wmnote"); if (wm) wm.innerHTML = ST.premium ? "Premium: your memes have no watermark." : 'Free memes carry a small Memeroll mark. <button class="chip" data-go="premium">Remove it with Premium</button>';
+    if (sig) { var el = null; try { el = $(sig); } catch (e) {} if (el) el.focus(); }
+  }
+  function paintTemplates() {
+    Array.prototype.forEach.call(document.querySelectorAll("#tpls .tpl"), function (btn) {
+      var t = TEMPLATES.filter(function (x) { return x.id === btn.dataset.id; })[0], d = t.make(), cv = btn.querySelector("canvas"), sc = 150 / d.w;
+      cv.width = 150; cv.height = Math.round(d.h * sc);
+      var ctx = cv.getContext("2d"); ctx.scale(sc, sc);
+      drawMeme(ctx, d.w, d.h, { w: d.w, h: d.h, base: d.base, band: d.band, layers: d.layers, strokes: [], sel: -1, k: 1, wm: false }, false);
+    });
+  }
+  function renderMaker() {
+    if (!ST.maker) newMaker();
+    $("#view").innerHTML = '<div class="hero"><div><p class="eyebrow">Meme maker</p><h1>Make your own</h1><p class="sub">Start with your own picture, then change its colours and add funny text and emojis.</p></div></div>' +
+      '<div class="upbar"><label class="btn pri upbig" for="mk-file">Upload a picture</label><p>or drop or paste one onto the canvas. No picture? Pick a template below.</p></div>' +
+      '<div class="mk"><div class="stage"><div class="mktools" id="mktools" role="toolbar" aria-label="Editing tools"></div>' +
+      '<div class="cwrap"><canvas id="mc" width="800" height="800" aria-label="Meme preview. Drag items to move them."></canvas></div>' +
+      '<p class="hint" id="mkhint"></p><p class="hint" id="wmnote"></p></div><div id="mkside">' +
+      '<details class="panel" open><summary>Picture</summary><div id="mkpic"></div></details>' +
+      '<details class="panel" open><summary>Colour</summary><div id="mkcolor"></div></details>' +
+      '<details class="panel" open><summary>Templates</summary><div class="tpls" id="tpls">' + TEMPLATES.map(function (t) { return '<button class="tpl" data-mk="tpl" data-id="' + t.id + '" aria-label="Template: ' + esc(t.name) + '"><canvas></canvas><span>' + esc(t.name) + '</span></button>'; }).join("") + '</div><div class="row" style="margin-top:12px"><button class="btn sm" data-mk="surprise">Surprise me</button></div></details>' +
+      '<details class="panel" open><summary>Add</summary><div id="mkadd"></div></details>' +
+      '<details class="panel" open><summary>Selected item</summary><div id="mksel"></div></details>' +
+      '<details class="panel"><summary>Draw</summary><div id="mkdraw"></div></details>' +
+      '<details class="panel" open><summary>Share</summary><div id="mkshare"></div></details></div></div>';
+    syncAll(); redrawMaker(); paintTemplates();
+    if (document.fonts && document.fonts.load) {
+      Promise.all(["Anton", "Bangers", "Bebas Neue", "Permanent Marker"].map(function (f) { return document.fonts.load('40px "' + f + '"', "A"); })).then(function () { redrawMaker(); paintTemplates(); }).catch(noop);
+    }
+  }
+  function redrawMaker() {
+    var c = $("#mc"); if (!c || !ST.maker) return;
+    var M = ST.maker; M.wm = !ST.premium;
+    if (c.width !== M.w) c.width = M.w;
+    if (c.height !== M.h) c.height = M.h;
+    var r = c.getBoundingClientRect(); M.k = r.width ? r.width / M.w : 1;
+    drawMeme(c.getContext("2d"), M.w, M.h, M, M.tool !== "pen");
+  }
+
+  /* ----- export ----- */
+  function exportBlob(sc, mime) {
+    var M = ST.maker, c = document.createElement("canvas"); c.width = M.w * sc; c.height = M.h * sc;
+    var ctx = c.getContext("2d"); ctx.scale(sc, sc); M.wm = !ST.premium;
+    drawMeme(ctx, M.w, M.h, M, false);
+    return new Promise(function (res) { c.toBlob(function (b) { res(b); }, mime, 0.92); });
+  }
+  function exportOpts() { var M = ST.maker; return { sc: M.hd && ST.premium ? 2 : 1, mime: M.fmt === "jpg" ? "image/jpeg" : "image/png" }; }
+  function makeCaption() {
+    var M = ST.maker;
+    return M.caption.trim() || M.layers.filter(function (l) { return layerType(l) === "text" && String(l.text).trim(); }).map(function (l) { return String(l.text).replace(/\s+/g, " ").trim(); }).join(". ");
+  }
+
+  /* ----- events ----- */
+  function bindMaker() {
+    var drag = null, nudgeT = 0;
+    function pt(e) { var c = $("#mc"), r = c.getBoundingClientRect(), M = ST.maker; M.k = r.width / M.w; return { x: (e.clientX - r.left) * (M.w / r.width), y: (e.clientY - r.top) * (M.h / r.height) }; }
+    function commitSync() { commit(); syncTools(); }
+
+    document.addEventListener("pointerdown", function (e) {
+      var c = e.target; if (!c || c.id !== "mc" || !ST.maker) return;
+      var M = ST.maker, p = pt(e), L = M.layers[M.sel];
+      e.preventDefault();
+      try { c.setPointerCapture(e.pointerId); } catch (er) {}
+      if (M.tool === "pen") { var s = { c: M.pen.c, w: M.pen.w, pts: [[p.x / M.w, p.y / M.h]] }; M.strokes.push(s); drag = { type: "pen" }; redrawMaker(); return; }
+      if (L) {
+        var part = handleAt(L, p.x, p.y, M.k);
+        if (part === "scale") { drag = { type: "scale", L: L, d0: Math.max(10, Math.hypot(p.x - L._cx, p.y - L._cy)), s0: L.size }; return; }
+        if (part === "rotate") { drag = { type: "rotate", L: L }; return; }
+      }
+      for (var i = M.layers.length - 1; i >= 0; i--) {
+        if (handleAt(M.layers[i], p.x, p.y, M.k) === "body") {
+          M.sel = i; var T2 = M.layers[i];
+          drag = { type: "move", L: T2, dx: p.x - T2.x * M.w, dy: p.y - T2.y * M.h };
+          syncAll(); redrawMaker(); return;
+        }
+      }
+      var had = M.sel >= 0; M.sel = -1;
+      if (M.base.kind === "img") drag = { type: "pan", sx: p.x, sy: p.y, bx: M.base.px || 0, by: M.base.py || 0 };
+      if (had) syncAll();
+      redrawMaker();
+    });
+    document.addEventListener("pointermove", function (e) {
+      if (!drag || !ST.maker || !$("#mc")) return;
+      var M = ST.maker, p = pt(e), L = drag.L;
+      if (drag.type === "pen") { M.strokes[M.strokes.length - 1].pts.push([p.x / M.w, p.y / M.h]); }
+      else if (drag.type === "move") { L.x = clamp((p.x - drag.dx) / M.w, 0, 1); L.y = clamp((p.y - drag.dy) / M.h, 0, 1); drag.moved = true; }
+      else if (drag.type === "scale") {
+        var ty = layerType(L), lim = ty === "text" ? [16, 260] : ty === "sticker" ? [30, 500] : [30, 1200];
+        L.size = Math.round(clamp(drag.s0 * Math.hypot(p.x - L._cx, p.y - L._cy) / drag.d0, lim[0], lim[1])); drag.moved = true;
+      }
+      else if (drag.type === "rotate") {
+        var a = Math.atan2(p.y - L._cy, p.x - L._cx) * 180 / Math.PI + 90; a = ((a + 540) % 360) - 180;
+        [0, 45, 90, 135, 180, -45, -90, -135, -180].forEach(function (s) { if (Math.abs(a - s) < 4) a = s; });
+        L.rot = Math.round(a); drag.moved = true;
+      }
+      else if (drag.type === "pan") {
+        var b = M.base, by = M.band ? Math.round(M.h * (M.band.h || 0.2)) : 0, ph = M.h - by;
+        b.px = (drag.bx || 0) + (p.x - drag.sx) / M.w; b.py = (drag.by || 0) + (p.y - drag.sy) / ph; clampPan(M); drag.moved = true;
+      }
+      redrawMaker();
+    });
+    function end() {
+      if (!drag) return;
+      var d = drag; drag = null;
+      if (d.type === "pen" || d.moved) { commitSync(); if (d.type === "scale" || d.type === "rotate") syncSelected(); if (d.type === "pen") syncAll(); }
+    }
+    document.addEventListener("pointerup", end); document.addEventListener("pointercancel", end);
+
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-mk]"); if (!b || !ST.maker || !$("#mc")) return;
+      var M = ST.maker, v = b.dataset.v, L = M.layers[M.sel], act = b.dataset.mk;
+      if (act === "undo") undo();
+      else if (act === "redo") redo();
+      else if (act === "tool") { M.tool = v; if (v === "pen") $("#mkdraw").closest("details").open = true; syncAll(); redrawMaker(); }
+      else if (act === "dup") dupLayer();
+      else if (act === "fwd") moveLayer(1);
+      else if (act === "back") moveLayer(-1);
+      else if (act === "del") delLayer();
+      else if (act === "layer") { M.sel = +b.dataset.i; M.tool = "move"; syncAll(); redrawMaker(); }
+      else if (act === "tpl") applyTemplate(b.dataset.id);
+      else if (act === "surprise") surprise();
+      else if (act === "size") { M.w = +b.dataset.w; M.h = +b.dataset.h; clampPan(M); commit(); syncAll(); redrawMaker(); }
+      else if (act === "size-auto") { var im = M.base.img; if (im) { M.w = 800; M.h = clamp(Math.round(800 * (im.naturalHeight || im.height) / (im.naturalWidth || im.width)), 300, 1400); clampPan(M); commit(); syncAll(); redrawMaker(); } }
+      else if (act === "swatch") {
+        var i = +b.dataset.i;
+        if (M.base.kind !== "bg") M.base = { kind: "bg", i: i, emoji: "😅" };
+        else if (b.dataset.which === "b") M.base.i2 = i; else M.base.i = i;
+        commit(); syncAll(); redrawMaker();
+      }
+      else if (act === "solid") { M.base = { kind: "solid", color: b.dataset.c }; commit(); syncAll(); redrawMaker(); }
+      else if (act === "emoji") { if (M.base.kind === "bg") { M.base.emoji = b.dataset.e; commit(); syncAll(); redrawMaker(); } }
+      else if (act === "fit") { M.base.fit = v; M.base.zoom = 1; M.base.px = 0; M.base.py = 0; commit(); syncAll(); redrawMaker(); }
+      else if (act === "flip") { M.base.flip = !M.base.flip; commit(); redrawMaker(); }
+      else if (act === "resetimg") { M.base.zoom = 1; M.base.px = 0; M.base.py = 0; commit(); syncAll(); redrawMaker(); }
+      else if (act === "filter") {
+        var fl = FILTERS.filter(function (x) { return x[0] === v; })[0], keep = Object.assign(defaultAdj(), M.base.adj || {});
+        M.base.adj = Object.assign(defaultAdj(), fl[2], { tint: keep.tint, ta: keep.ta }); M.base.fkey = v; commit(); syncAll(); redrawMaker();
+      }
+      else if (act === "resetcolour") { M.base.adj = defaultAdj(); M.base.fkey = "none"; commit(); syncAll(); redrawMaker(); }
+      else if (act === "idea") {
+        var line = ideaLine();
+        if (L && layerType(L) === "text") L.text = line;
+        else { var nl = layer(line, 0.5); nl.size = 50; nl.upper = false; M.layers.push(nl); M.sel = M.layers.length - 1; M.tool = "move"; }
+        commit(); syncAll(); redrawMaker();
+      }
+      else if (act === "emoji-custom") addCustomEmoji();
+      else if (act === "clearimg") { M.base = { kind: "bg", i: 0, emoji: "😅" }; commit(); syncAll(); redrawMaker(); }
+      else if (act === "band") { M.band = M.band ? null : { h: 0.2, color: "#ffffff" }; clampPan(M); commit(); syncAll(); redrawMaker(); }
+      else if (act === "add-text") { var nt = layer("Your text", 0.5); nt.size = 60; M.layers.push(nt); M.sel = M.layers.length - 1; M.tool = "move"; commit(); syncAll(); redrawMaker(); var ta = $('[data-lp="text"]'); if (ta) { ta.focus(); ta.select(); } }
+      else if (act === "add-shape") {
+        var k = b.dataset.kind;
+        M.layers.push({ type: "shape", kind: k, x: 0.5, y: 0.5, size: k === "arrow" ? 260 : k === "line" ? 300 : 240, ratio: k === "circle" ? 1 : 0.7, thick: 10, fill: "#ff2d55", rot: 0, op: 1 });
+        M.sel = M.layers.length - 1; M.tool = "move"; commit(); syncAll(); redrawMaker();
+      }
+      else if (act === "sticker") addEmoji(b.dataset.e);
+      else if (act === "style" && L) { L.style = v; commit(); syncAll(); redrawMaker(); }
+      else if (act === "pencolor") { M.pen.c = b.dataset.c; M.tool = "pen"; $("#mkdraw").closest("details").open = true; syncAll(); redrawMaker(); }
+      else if (act === "undo-stroke") { M.strokes.pop(); commit(); syncAll(); redrawMaker(); }
+      else if (act === "clear-strokes") { M.strokes = []; commit(); syncAll(); redrawMaker(); }
+      else if (act === "fmt") { M.fmt = v; syncAll(); }
+      else if (act === "hd") { if (v === "1" && !ST.premium) { gate("HD export"); return; } M.hd = v === "1"; syncAll(); }
+      else if (act === "post") {
+        exportBlob(1, "image/png").then(function (blob) {
+          if (!blob) { toast("Could not create the picture"); return; }
+          addItem(blob, "image", makeCaption(), M.premium); ST.filter = "all"; go("today");
+          toast("Meme posted to today" + (credits() > 0 ? ". You have a premium download ready." : ""));
+        });
+      }
+      else if (act === "download") {
+        var o = exportOpts();
+        exportBlob(o.sc, o.mime).then(function (blob) {
+          if (!blob) { toast("Could not create the picture"); return; }
+          openViewer({ id: "meme-" + Date.now(), kind: "image", mime: blob.type || o.mime, caption: M.caption.trim(), src: URL.createObjectURL(blob), blob: blob, temp: true, source: "temp" }, true);
+          var d = $("#dl"); if (d) d.dataset.temp = "1";
+        });
+      }
+      else if (act === "copy") {
+        exportBlob(exportOpts().sc, "image/png").then(function (blob) {
+          if (!blob || !window.ClipboardItem || !navigator.clipboard || !navigator.clipboard.write) { toast("Copying pictures is not available here. Use Download."); return; }
+          navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(function () { toast("Picture copied"); }, function () { toast("Copying was blocked. Use Download."); });
+        });
+      }
+    });
+
+    document.addEventListener("input", function (e) {
+      var t = e.target, M = ST.maker; if (!M || !$("#mc") || !t.dataset) return;
+      if (t.dataset.lp !== undefined) {
+        var L = M.layers[M.sel], p = t.dataset.lp; if (!L || p === "font") return;
+        L[p] = t.type === "checkbox" ? t.checked : (t.type === "range" || t.type === "number") ? +t.value : t.value;
+        if (p === "text") refreshChips();
+        redrawMaker(); return;
+      }
+      if (t.dataset.adj !== undefined) {
+        var bs = M.base; if (bs.kind !== "img") return; bs.adj = Object.assign(defaultAdj(), bs.adj || {});
+        bs.adj[t.dataset.adj] = t.type === "checkbox" ? (t.checked ? 1 : 0) : t.type === "range" ? +t.value : t.value;
+        bs.fkey = "custom"; redrawMaker(); return;
+      }
+      if (t.id === "mk-emoji") { M.base.emoji = t.value; redrawMaker(); }
+      else if (t.id === "mk-emoji2") { M.base.emoji2 = t.value; redrawMaker(); }
+      else if (t.id === "mk-zoom") { M.base.zoom = +t.value; clampPan(M); redrawMaker(); }
+      else if (t.id === "mk-bandh") { if (M.band) M.band.h = +t.value; clampPan(M); redrawMaker(); }
+      else if (t.id === "mk-bandc") { if (M.band) M.band.color = t.value; redrawMaker(); }
+      else if (t.id === "mk-pensize") { M.pen.w = +t.value; }
+      else if (t.id === "mk-cap") { M.caption = t.value; }
+    });
+    document.addEventListener("change", function (e) {
+      var t = e.target, M = ST.maker; if (!M || !$("#mc") || !t.closest || !t.closest("#mkside")) return;
+      if (t.id === "mk-file") { loadPicture(t.files[0]); t.value = ""; return; }
+      if (t.id === "mk-prem") { M.premium = t.checked; return; }
+      if (t.id === "mk-font") {
+        var L = M.layers[M.sel]; if (!L) return;
+        if (t.value !== "Anton" && !ST.premium) { t.value = L.font || "Anton"; gate("Extra fonts"); return; }
+        L.font = t.value; redrawMaker(); commitSync(); return;
+      }
+      if (t.dataset.adj !== undefined) { commitSync(); syncAll(); return; }
+      if (t.dataset.lp !== undefined || t.id === "mk-zoom" || t.id === "mk-bandh" || t.id === "mk-bandc" || t.id === "mk-emoji" || t.id === "mk-emoji2") commitSync();
+    });
+    document.addEventListener("keydown", function (e) {
+      var M = ST.maker; if (!M || ST.view !== "make" || $("#overlay .ov")) return;
+      var tg = e.target, typing = tg && /^(input|textarea|select)$/i.test(tg.tagName), mod = e.ctrlKey || e.metaKey, key = e.key;
+      if (key === "Enter" && tg && tg.id === "mk-emoji-add") { e.preventDefault(); addCustomEmoji(); return; }
+      if (typing) return;
+      if (mod && (key === "z" || key === "Z")) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if (mod && (key === "y" || key === "Y")) { e.preventDefault(); redo(); return; }
+      var L = M.layers[M.sel]; if (!L) return;
+      if (mod && (key === "d" || key === "D")) { e.preventDefault(); dupLayer(); }
+      else if (key === "Delete" || key === "Backspace") { e.preventDefault(); delLayer(); }
+      else if (key === "Escape") { M.sel = -1; syncAll(); redrawMaker(); }
+      else if (key.indexOf("Arrow") === 0 && !(tg && tg.tagName === "BUTTON")) {
+        e.preventDefault(); var st = e.shiftKey ? 10 : 1;
+        L.x = clamp(L.x + (key === "ArrowRight" ? st : key === "ArrowLeft" ? -st : 0) / M.w, 0, 1);
+        L.y = clamp(L.y + (key === "ArrowDown" ? st : key === "ArrowUp" ? -st : 0) / M.h, 0, 1);
+        redrawMaker(); clearTimeout(nudgeT); nudgeT = setTimeout(commitSync, 400);
+      }
+    });
+    window.addEventListener("resize", function () { if ($("#mc")) redrawMaker(); });
+    document.addEventListener("dragover", function (e) { if (ST.maker && e.target.closest && e.target.closest(".cwrap")) e.preventDefault(); });
+    document.addEventListener("drop", function (e) {
+      if (!ST.maker || !e.target.closest || !e.target.closest(".cwrap")) return;
+      e.preventDefault(); var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadPicture(f);
+    });
+    document.addEventListener("paste", function (e) {
+      if (!ST.maker || ST.view !== "make" || !$("#mc")) return;
+      var f = e.clipboardData && e.clipboardData.files && e.clipboardData.files[0];
+      if (f && f.type.indexOf("image/") === 0) { e.preventDefault(); loadPicture(f); }
+    });
+  }
+
+  /* ---------- footer and theme ---------- */
+  function effectiveTheme() {
+    var t = document.documentElement.getAttribute("data-theme"); if (t) return t;
+    return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  function updateThemeBtn() { var b = $("#themebtn"); if (b) b.textContent = effectiveTheme() === "dark" ? "Switch to light" : "Switch to dark"; }
+  function applyTheme(t) { document.documentElement.setAttribute("data-theme", t); try { localStorage.setItem("memeroll-theme", t); } catch (e) {} updateThemeBtn(); }
+  function updateFooter() {
+    var n = ST.items.length, days = {};
+    ST.items.forEach(function (i) { days[dayKey(i.ts)] = 1; });
+    var d = Object.keys(days).length, el = $("#fstat");
+    if (el) el.textContent = n ? n + (n === 1 ? " meme" : " memes") + " across " + d + (d === 1 ? " day" : " days") : "";
+    var eo = $("#feod"); if (eo) eo.textContent = eodText();
+    var fb = $("#fbest");
+    if (fb) {
+      var key = dayKey(Date.now()), best = null;
+      ST.items.forEach(function (i) { if (dayKey(i.ts) === key && (!best || likesOf(i) > likesOf(best))) best = i; });
+      if (best) {
+        var cap = (best.caption || "Untitled").replace(/\s+/g, " ");
+        if (cap.length > 46) cap = cap.slice(0, 44) + "\u2026";
+        fb.innerHTML = 'Meme of the day: <button class="lb" data-action="open" data-id="' + best.id + '">' + esc(cap) + '</button>';
+        fb.hidden = false;
+      } else fb.hidden = true;
+    }
+    var fc = $("#fcred"); if (fc) fc.textContent = "Premium downloads ready: " + credits() + " (" + (ST.uploads % 2) + " of 2 uploads toward the next)";
+    var y = $("#fyear"); if (y) y.textContent = new Date().getFullYear();
+    updateThemeBtn();
+  }
+
+  /* ---------- premium ---------- */
+  function gate(name) { toast(name + " is a Premium tool"); go("premium"); }
+  function renderPremium() {
+    var on = ST.premium, ok = configured(), code = ok ? memberCode() : "";
+    var base = location.href.split("#")[0], act;
+    if (on) {
+      act = '<button class="btn" disabled>You are on Premium</button><p class="hint">Your member code. Keep it private. Use it to restore Premium on another device.</p><code class="mcode" id="mcode">' + esc(code) + '</code><button class="btn sm" data-action="copy-code">Copy code</button>';
+    } else if (!ok || !code) {
+      act = '<button class="btn" disabled>Checkout opens soon</button><p class="hint">Premium checkout is not switched on yet, so nothing can be bought for now.</p>';
+    } else {
+      act = '<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top"><input type="hidden" name="cmd" value="_s-xclick"><input type="hidden" name="hosted_button_id" value="PKQP4Q6EZ8NDU"><input type="hidden" name="currency_code" value="USD">' +
+        '<input type="hidden" name="custom" value="' + esc(code) + '"><input type="hidden" name="notify_url" value="' + esc(PREMIUM.ipn) + '"><input type="hidden" name="return" value="' + esc(base + "#paid") + '"><input type="hidden" name="cancel_return" value="' + esc(base + "#premium") + '">' +
+        '<button class="btn pri" type="submit" style="width:100%">Pay $1 to Upgrade to Premium</button></form>' +
+        '<p class="hint">You go to PayPal to pay. Premium unlocks only after PayPal confirms your payment. Until then it stays locked.</p>' +
+        '<button class="btn" data-action="check-premium">Check my payment</button>' +
+        '<label class="fld">Paid on another device? Enter your member code<input id="rcode" type="text" maxlength="40" autocomplete="off"></label><button class="btn sm" data-action="restore">Restore Premium</button>';
+    }
+    $("#view").innerHTML = '<div class="hero"><div><p class="eyebrow">Premium</p><h1>Premium tools</h1><p class="sub">Free covers posting and browsing. Premium adds more tools for making memes.</p></div></div>' +
+      '<div class="plans"><section class="plan"><h2>Free</h2><p class="price">Always free</p><ul><li>Daily feed and the full archive</li><li>Upload images and videos up to 25 MB</li><li>Meme maker with the Anton font</li><li>Memes you make carry a small Memeroll mark</li></ul>' +
+      '<button class="btn" disabled>' + (on ? 'Included in Premium' : 'Your current plan') + '</button></section>' +
+      '<section class="plan prem"><h2>Premium</h2><p class="price">$1, paid with PayPal</p><ul><li>No watermark on memes you make</li><li>Three extra fonts: Bangers, Bebas Neue and Permanent Marker</li><li>HD export at 1600 px</li><li>Upload images and videos up to 100 MB</li><li class="soon">Coming soon: GIF maker</li><li class="soon">Coming soon: captions for video memes</li></ul>' +
+      act + '<p class="hint" id="paymsg" role="status">' + esc(ST.paymsg || "") + '</p></section></div>' +
+      '<p class="hint">Payments are handled by PayPal. Memeroll never sees your card details.</p>';
+  }
+
+  /* ---------- info pages ---------- */
+  var INFO = {
+    about: { eyebrow: "Memeroll", title: "About Memeroll", body: `<p>Memeroll is a daily drop of memes. Images and videos are grouped by day, so there is always a fresh batch to scroll through and an archive to dig into.</p><p>Save the ones you like, post your own, or build one from scratch in the <a href="#make" data-go="make">meme maker</a>.</p><h2>Where this is at</h2><p>This is a prototype. Posts, likes and uploads live in your own browser for now. Shared uploads and accounts need a backend, which comes next.</p>` },
+    rules: { eyebrow: "Community", title: "House rules", body: `<ol><li>Post what you made or have the right to share.</li><li>Keep it fun. No harassment, hate or personal attacks.</li><li>Do not post private photos of other people.</li><li>Delete your own uploads whenever you like.</li></ol><p>Memes that break these rules can be removed. If your work was shared without your permission, see <a href="#copyright" data-go="copyright">Copyright and takedowns</a>.</p>` },
+    copyright: { eyebrow: "Community", title: "Copyright and takedowns", draft: true, body: `<p>Only upload memes you made or have permission to share.</p><p>If your work was posted without your permission, you can ask for it to be taken down. Requests will go to a contact address that gets published on this page once the site has a backend and moderators.</p><h2>Until then</h2><p>Uploads are stored only in the browser of the person who added them, so nothing is shared with other visitors yet.</p>` },
+    privacy: { eyebrow: "Memeroll", title: "Privacy", draft: true, body: `<p>In this prototype everything stays in your browser. That covers uploaded memes, likes, your theme choice and your demo plan. Nothing is sent to a server.</p><h2>Later</h2><p>When accounts and a backend are added, this page will say what is collected, why, and how to delete it.</p>` },
+    terms: { eyebrow: "Memeroll", title: "Terms", draft: true, body: `<p>You are responsible for what you upload. You keep ownership of your own memes and let Memeroll show them to other visitors.</p><p>Memes that break the <a href="#rules" data-go="rules">house rules</a> or the law can be removed. The service is a prototype and is provided as it is.</p>` }
+  };
+  function renderInfo(k) {
+    var p = INFO[k];
+    $("#view").innerHTML = '<div class="hero"><div><p class="eyebrow">' + esc(p.eyebrow) + '</p><h1>' + esc(p.title) + '</h1></div></div><div class="prose">' + p.body + '</div>' +
+      (p.draft ? '<p class="hint">Draft text for the prototype. Have it reviewed before real people use the site.</p>' : '');
+  }
+
+  /* ---------- views and routing ---------- */
+  var VIEWS = [["today", "Today"], ["archive", "Archive"], ["make", "Make a meme"], ["upload", "Upload"]];
+  var ROUTES = VIEWS.concat([["premium", "Premium"]]).concat(Object.keys(INFO).map(function (k) { return [k, INFO[k].title]; }));
+  function render() {
+    updateFooter();
+    $("#tabs").innerHTML = VIEWS.map(function (v) { return '<button data-go="' + v[0] + '"' + (ST.view === v[0] ? ' aria-current="page"' : '') + '>' + v[1] + '</button>'; }).join("");
+    if (ST.loading) { $("#view").innerHTML = '<div class="empty"><b>Loading memes</b>Drawing today\'s drop.</div>'; return; }
+    var up = $("#upg"); if (up) up.textContent = ST.premium ? "★ Premium" : "★ Upgrade";
+    if (INFO[ST.view]) renderInfo(ST.view); else if (ST.view === "premium") renderPremium(); else if (ST.view === "archive") renderArchive(); else if (ST.view === "make") renderMaker(); else if (ST.view === "upload") renderUpload(); else renderToday();
+  }
+  function go(v) { closeViewer(); if (location.hash === "#" + v) { ST.view = v; render(); window.scrollTo(0, 0); } else location.hash = v; }
+  window.addEventListener("hashchange", function () {
+    var v = location.hash.slice(1);
+    if (ROUTES.some(function (x) { return x[0] === v; }) && v !== ST.view) { ST.view = v; closeViewer(); render(); window.scrollTo(0, 0); }
+  });
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", function (e) {
+    var dl = e.target.closest("#dl");
+    if (dl && VIEW) {
+      var it0 = VIEW.item, prem = needsCredit(it0);
+      if (prem && credits() < 1) { e.preventDefault(); toast("Upload 2 memes to unlock this download"); go("upload"); return; }
+      if (DL && it0.blob) {
+        e.preventDefault();
+        DL.save({ filename: VIEW.name, data: it0.blob }).then(function () { if (prem) spendCredit(it0); toast("Saved"); }).catch(function (err) {
+          var c = err && err.code;
+          if (c === "declined") return;
+          toast(c === "rejected_extension" ? "This file type can't be saved here. Use the tip below." : "Couldn't save. Use the tip below.");
+        });
+        return;
+      }
+      if (prem) spendCredit(it0);
+      return;
+    }
+    var g = e.target.closest("[data-go]"); if (g) { if (g.dataset.filter) ST.filter = g.dataset.filter; go(g.dataset.go); return; }
+    var b = e.target.closest("[data-action]"); if (!b) return;
+    var a = b.dataset.action, id = b.dataset.id, it, M = ST.maker;
+    if (a === "close-bg") { if (e.target === b) closeViewer(); }
+    else if (a === "close") closeViewer();
+    else if (a === "need-uploads") { go("upload"); toast("Upload 2 memes to unlock 1 premium download"); }
+    else if (a === "filter") { ST.filter = b.dataset.f; render(); }
+    else if (a === "open") { it = byId(id); if (it) openViewer(it, !!b.dataset.dl); }
+    else if (a === "like") {
+      it = byId(id); if (!it) return;
+      if (ST.liked[id]) delete ST.liked[id]; else ST.liked[id] = 1;
+      saveLiked();
+      Array.prototype.forEach.call(document.querySelectorAll('[data-like="' + id + '"]'), function (el) { el.classList.toggle("on", !!ST.liked[id]); el.setAttribute("aria-pressed", !!ST.liked[id]); var s = el.querySelector("span"); if (s) s.textContent = likesOf(it); });
+    }
+    else if (a === "delete") {
+      it = byId(id); if (!it) return;
+      ST.items = ST.items.filter(function (x) { return x.id !== id; }); delBlob(id).catch(noop); saveMeta(); closeViewer(); render(); toast("Meme deleted");
+    }
+    else if (a === "rm-pending") { var f = ST.pending.splice(+b.dataset.i, 1)[0]; if (f) URL.revokeObjectURL(f.url); renderPending(); }
+    else if (a === "post-upload") {
+      var n = ST.pending.length;
+      ST.pending.forEach(function (f) { addItem(f.file, f.kind, f.caption, f.premium); });
+      ST.pending = []; ST.filter = "all"; go("today"); toast(n + (n === 1 ? " meme posted to today" : " memes posted to today") + (credits() > 0 ? ". You have a premium download ready." : ""));
+    }
+    else if (a === "theme") { applyTheme(effectiveTheme() === "dark" ? "light" : "dark"); }
+    else if (a === "top") { window.scrollTo({ top: 0, behavior: window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
+    else if (a === "check-premium") { verifyPremium(3, true); }
+    else if (a === "restore") {
+      var rc = (($("#rcode") || {}).value || "").trim().toLowerCase();
+      if (!UUID_RE.test(rc)) { setPayMsg("That does not look like a member code."); return; }
+      try { localStorage.setItem("memeroll-code", rc); } catch (er) {}
+      ST.code = rc; verifyPremium(1, true);
+    }
+    else if (a === "copy-code") {
+      try { navigator.clipboard.writeText(ST.code || "").then(function () { toast("Code copied"); }, function () { toast("Select the code and copy it"); }); } catch (er) { toast("Select the code and copy it"); }
+    }
+  });
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.cap !== undefined) { ST.pending[+t.dataset.cap].caption = t.value; }
+  });
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.prem !== undefined) { ST.pending[+t.dataset.prem].premium = t.checked; }
+    else if (t.id === "ufile") { takeFiles(t.files); t.value = ""; }
+  });
+  document.addEventListener("dragover", function (e) { var d = e.target.closest && e.target.closest("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
+  document.addEventListener("dragleave", function (e) { var d = e.target.closest && e.target.closest("#drop"); if (d) d.classList.remove("over"); });
+  document.addEventListener("drop", function (e) { var d = e.target.closest && e.target.closest("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); takeFiles(e.dataTransfer.files); } });
+  document.addEventListener("contextmenu", function (e) { if (e.target.closest && e.target.closest("[data-lock]")) e.preventDefault(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && $("#overlay .ov")) closeViewer(); });
+  setInterval(function () { var el = $("#eod"); if (el) el.textContent = eodText(); var f = $("#feod"); if (f) f.textContent = eodText(); }, 30000);
+
+  /* ---------- start ---------- */
+  try { ST.liked = JSON.parse(localStorage.getItem("memeroll-liked") || "{}"); } catch (e) { ST.liked = {}; }
+  var h0 = location.hash.slice(1);
+  ST.premium = false;
+  try { ST.uploads = +localStorage.getItem("memeroll-uploads") || 0; ST.used = +localStorage.getItem("memeroll-used") || 0; } catch (e) {}
+  try { var savedTheme = localStorage.getItem("memeroll-theme"); if (savedTheme === "dark" || savedTheme === "light") document.documentElement.setAttribute("data-theme", savedTheme); } catch (e) {}
+  var returned = h0 === "paid";
+  if (returned) { ST.view = "premium"; location.hash = "premium"; }
+  else if (ROUTES.some(function (x) { return x[0] === h0; })) ST.view = h0;
+  bindMaker();
+  render();
+  verifyPremium(returned ? 12 : 1, returned);
+  Promise.all([buildSeeds(), loadUser()]).then(function (r) {
+    ST.items = r[0].concat(r[1]); ST.loading = false; render();
+  }).catch(function () { ST.loading = false; render(); }).then(addVideoSeeds);
+})();
+</script>
